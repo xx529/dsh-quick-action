@@ -67,7 +67,7 @@ node tests/controller.test.mjs      # controller 单测，末尾打印 "controll
 
 ## 5. 已知问题（别再踩）
 
-- 曾做过"滚动时淡出/隐藏输入框"，会触发渲染器黑屏（疑似宿主 compositing bug），已移除。
+- 滚动淡出输入框（阅读收起）：只对 `[data-composer-seat]` 做 `opacity`（**绝不加 transform / will-change**），滚动停下后淡入；带崩溃自保护（`dsh-quick-action.session-token` 未清理则下次启动自动关闭），`⌘⇧H` 手动开关，开关状态在 `localStorage["dsh-quick-action.readmode"]`。若再出现黑屏，立刻设为 off 并回退。
   **不要再用 `transform`/`opacity` 动 `[data-composer-seat]`**。
 - 左栏页脚"切回原生视图"开关已按要求删除；`sidebar.footer.action` 在当前侧栏布局下本来也渲染不出来。
 - 未实测项：待审批/待回答的角标只有代码与单测覆盖；agent-desktop 只能 AXPress，标签内 × 未实机点验。
