@@ -82,7 +82,7 @@ node tests/controller.test.mjs      # controller 单测，末尾打印 "controll
 - 持久化：`localStorage['dsh-quick-action.tabs.v1']`，格式 `{version:1, enabled, ids, active}`；
   `ids` 去重、上限 50，`validId` 拒绝空/超长/控制字符。设备切换/调试用 `window.__dshQuickAction`
   （`dispose` / `snapshot`）。
-- 状态字形一律内联 SVG，颜色用语义 token，不新增硬编码色值（描边色可继承 `currentColor`）。
+- 状态字形统一为「方案 A」：14×14 外环 + 1.5px 描边，内置符号 弧/?/!/清单/点；一律内联 SVG，颜色用语义 token（`currentColor`）。
 
 ## 7. Figma 与设计
 
