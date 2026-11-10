@@ -1,0 +1,37 @@
+{
+  "name": "dsh-quick-action",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Quick actions and session tabs for DeepSeek Harness: workspace + title tabs, status badges, keyboard switching",
+  "type": "module",
+  "main": "index.mjs",
+  "icon": "./icon.svg",
+  "exports": {
+    ".": "./index.mjs",
+    "./client": "./lib/client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.mjs",
+    "lib/client.js",
+    "cordis.patch.yml",
+    "icon.svg",
+    "locale/*.json",
+    "README.md"
+  ],
+  "dsh": {
+    "manifestVersion": 1,
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true
+    }
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24"
+  }
+}

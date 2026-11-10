@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Quick actions · Session tabs",
+    "description": "Session tabs above the conversation: workspace and title, status badges, Cmd+Shift+[ / ] switching, and a fix for leftover empty tabs. More quick actions will follow."
+  }
+}

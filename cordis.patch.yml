@@ -1,0 +1,16 @@
+# dsh-quick-action — quick actions for DeepSeek Harness.
+#
+# The host half is deliberately inert: all behaviour lives in the browser half
+# (lib/client.js). This row exists so the package is an enabled Loader entry,
+# which is what makes the host-side client-modules scanner publish
+# `exports["./client"]` to the browser as a module.
+#
+# The row id is stable: keep it when adding host-side config later.
+#
+# dsh-session-tabs also inserts a top tab strip. Two strips would overlap, so
+# this patch disables that row; re-enable it in the plugin manager to roll back.
+- id: session-tabs
+  disabled: true
+- insert:
+    - id: quick-action
+      name: dsh-quick-action
