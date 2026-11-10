@@ -58,7 +58,7 @@ node tests/controller.test.mjs      # controller 单测，末尾打印 "controll
    + 幂等重挂（`host.isConnected` 检查），不要只 `append` 一次。
 5. **快捷键**：用 `window.addEventListener('keydown', ..., false)`（bubble），先判
    `event.defaultPrevented || event.isComposing || keyCode===229`（中文组字不拦截）；⌘⇧[ / ] 切换、
-   ⌘I 聚焦输入框（光标落末尾），标签栏内 ←/→ 也切换。桌面端未注册键才会到达 DOM，避免硬编码
+   ⌘I 聚焦输入框（光标落末尾）、⌘J 跳到待处理（审批>计划>回答>未读 轮转，候选来自全部会话而非仅标签）、⌘W 关闭当前标签（等同点 ×；宿主默认占用 ⌘W 为 page.close，用户需在设置里改掉才能生效）。标签栏内 ←/→ 也切换。桌面端未注册键才会到达 DOM，避免硬编码
    ⌘W/⌘B/⌘⌥B/⌘T 等已占用键；宿主有 `ctx.shortcuts.register`，本插件未用。
 6. **主题 token**：只用 `--dsw-alias-state-{business,success,warn,error,done,idle}-*` 与
    `--dsw-alias-{bg,border,label,interactive}-*`；**没有 `warning`、没有 `danger`**（旧插件写

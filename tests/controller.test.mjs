@@ -147,3 +147,39 @@ assert.equal(st.missing, 'loading')
 }
 
 console.log('controller tests: ok')
+
+// 7. Cmd+J cycles attention sessions by urgency: approval > plan > answer > unread
+{
+  storage.value = null
+  const rows = {
+    a: { sessionId: 'a', title: 'A' },
+    b: { sessionId: 'b', title: 'B' },
+    c: { sessionId: 'c', title: 'C' },
+    d: { sessionId: 'd', title: 'D', retainedBy: { mainView: 1 } },
+  }
+  const status = new Map([
+    ['a', { pendingInteraction: { kind: 'approval' } }],
+    ['b', { completionUnread: true }],
+    ['c', { pendingInteraction: { kind: 'question' } }],
+  ])
+  const { ctx, opened } = makeCtx({ list: { phase: 'ready', ids: ['a', 'b', 'c', 'd'], byId: rows }, status })
+  const ctrl = mod.createController(ctx, { storage, lang: () => 'en' })
+  ctrl.focusAttention()
+  ctrl.focusAttention()
+  ctrl.focusAttention()
+  ctrl.focusAttention()
+  assert.deepEqual(opened.slice(0, 4), ['a', 'c', 'b', 'a'], 'approval -> answer -> unread -> wrap')
+}
+
+// 8. no attention sessions: no navigation, notice shown
+{
+  storage.value = null
+  const rows = { a: { sessionId: 'a', title: 'A', retainedBy: { mainView: 1 } } }
+  const { ctx, opened } = makeCtx({ list: { phase: 'ready', ids: ['a'], byId: rows } })
+  const ctrl = mod.createController(ctx, { storage, lang: () => 'en' })
+  assert.equal(ctrl.focusAttention(), false)
+  assert.deepEqual(opened, [])
+  assert.equal(ctrl.snapshot().notice, 'Nothing needs you right now')
+}
+
+console.log('attention tests: ok')
