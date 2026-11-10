@@ -32,18 +32,22 @@ node tests/controller.test.mjs
 
 ## 当前安装状态（本机）
 
-`plugin_manager install_bundle` 因 profile 里其他 GitHub 依赖拉取失败（ECONNRESET，codeload.github.com 不可达）而无法完成 pnpm 安装，因此改为手动链接：
+当前 desktop profile 的安装源是 **GitHub tag `v0.2.0`**：
 
-1. `~/.dsh/profiles/desktop/node_modules/dsh-quick-action` → 本仓库的软链；
-2. `~/.dsh/profiles/desktop/cordis.patch.yml` 末尾追加了启用段（并禁用 `session-tabs`）。
+- 代码克隆在 `~/.dsh/profiles/desktop/vendor/dsh-quick-action`（tag v0.2.0，detached HEAD）；
+- `~/.dsh/profiles/desktop/node_modules/dsh-quick-action` 软链到该目录；
+- `~/.dsh/profiles/desktop/cordis.patch.yml` 末尾保留启用段（insert `quick-action`）。
 
-回退：
+更新到新 tag：
 
-- 删除 `cordis.patch.yml` 末尾的 `# dsh-quick-action（本地开发链接）` 注释块；
-- 删除上面的软链；
-- 刷新页面即可回到原生视图（旧 `dsh-session-tabs` 同时恢复）。
+```sh
+cd ~/.dsh/profiles/desktop/vendor/dsh-quick-action
+git fetch --tags origin && git checkout vX.Y.Z
+```
 
-网络可用时，推荐改用 `plugin_manager install_bundle` 或 `dsh plugin add` 正式安装，届时可删除上述 patch 段，改由 bundle 自带 patch 生效。
+正式安装（网络恢复后）：`plugin_manager install_bundle` 目标 `github:xx529/dsh-quick-action#vX.Y.Z`；成功后删除上面的 vendor/软链与 patch 段，改由 bundle 自带 patch 生效。
+
+> `plugin_manager install_bundle` 在本机失败的原因：DSH 进程环境里的代理 `127.0.0.1:7897` 对 GitHub 报 `SSL_ERROR_SYSCALL`；而 shell 去掉代理后直连可用，所以改用「GitHub 克隆 + 软链」的等效安装。
 
 ## 已知问题 / 待验证
 

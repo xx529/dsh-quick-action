@@ -33,11 +33,11 @@ node --check lib/client.js          # 语法检查（无依赖）
 node tests/controller.test.mjs      # controller 单测，末尾打印 "controller tests: ok"
 ```
 
-安装（二选一）：
-
-- 正式：插件管理器 `plugin_manager install_bundle`（网络可用时首选）；本机曾因 profile 里其他
-  GitHub 依赖 `ECONNRESET` 失败，故当前是手动链接方案：`~/.dsh/profiles/desktop/node_modules/dsh-quick-action`
-  软链到本仓库 + 在 `~/.dsh/profiles/desktop/cordis.patch.yml` 末尾追加启用段。GitHub 网络恢复后应改为 `plugin_manager install_bundle` 目标 `github:xx529/dsh-quick-action#v0.1.1`（v0.1.0 已推送，安装需能访问 github.com）。
+安装（当前方式）：
+- 代码来自 **GitHub tag**：克隆在 `~/.dsh/profiles/desktop/vendor/dsh-quick-action`（当前 v0.2.0），
+  `~/.dsh/profiles/desktop/node_modules/dsh-quick-action` 软链到它，profile patch 里保留 `quick-action` 的 insert 段。
+- 更新：`cd ~/.dsh/profiles/desktop/vendor/dsh-quick-action && git fetch --tags && git checkout vX.Y.Z`。
+- 网络恢复后应改为 `plugin_manager install_bundle` 目标 `github:xx529/dsh-quick-action#vX.Y.Z`，并清理上述 vendor/软链/patch 段。
 - 改完 `lib/client.js` 需刷新 Harness 页面才生效；改 `AGENTS.md`/文档不需要。
 
 ## 4. 关键约束与坑（改了会坏）
