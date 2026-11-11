@@ -89,6 +89,7 @@ node tests/controller.test.mjs      # controller 单测，末尾打印 "controll
 - 持久化：`localStorage['dsh-quick-action.tabs.v1']`，格式 `{version:1, enabled, ids, active}`；
   `ids` 去重、上限 50，`validId` 拒绝空/超长/控制字符。设备切换/调试用 `window.__dshQuickAction`
   （`dispose` / `snapshot`）。
+- chip 分隔线（v0.2.10）：`.qa-tab::after` 画左侧 1px 竖线（`left:-3.5px;top:14px;height:18px`，颜色 `--qa-sep`），`.qa-tab + .qa-tab::after` 才显示；隐藏规则只写四条：`.qa-tab[data-active=true]::after`、`.qa-tab:hover::after`、`.qa-tab[data-active=true] + .qa-tab::after`、`.qa-tab:hover + .qa-tab::after`（**不要再用 `:has()` 反向选择**，会把相邻标签的线藏错位置）。`.qa-list` 间距 6px 给线留位。
 - 状态字形统一为「方案 A」：14×14 外环 + 1.5px 描边，内置符号 弧/?/!/清单/点；一律内联 SVG，颜色用语义 token（`currentColor`）。
 
 ## 7. Figma 与设计
