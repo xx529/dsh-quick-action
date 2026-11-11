@@ -240,3 +240,12 @@ console.log('read mode default tests: ok')
 }
 
 console.log('crash state tests: ok')
+
+// 13. stripActive: 主面板在全局视图/配置时，没有「当前会话」，标签不选中
+{
+  assert.equal(mod.stripActive('s1', false), 's1', '会话视图下正常高亮当前会话')
+  assert.equal(mod.stripActive('s1', true), null, '全局视图/配置下不高亮任何 chip')
+  assert.equal(mod.stripActive(null, true), null)
+}
+
+console.log('strip active tests: ok')
