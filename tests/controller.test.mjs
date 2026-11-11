@@ -296,13 +296,31 @@ console.log('reorder tests: ok')
 
 console.log('jumpTo tests: ok')
 
-// 16. domFallback: 宿主注册成功后 DOM 兜底必须让位（改键后旧键不再幽灵触发）
+// 16. 兜底按键跟随宿主配置（catalog 优先；没有该命令才退回声明默认键）
 {
-  assert.equal(mod.domFallback(false, true, true), true, '宿主注册失败 → 用 DOM 兜底')
-  assert.equal(mod.domFallback(true, true, true), false, '宿主接管 → 不再兜底（⌘J 改成 ⌘⇧G 后 ⌘J 失效）')
-  assert.equal(mod.domFallback(true, false, true), false, '宿主接管且读不到绑定 → 交给宿主')
-  assert.equal(mod.domFallback(true, false, false), true, 'closeTab 默认无键 → 保留 ⌘W 兜底')
-  assert.equal(mod.domFallback(true, true, false), false, 'closeTab 被用户改键 → 旧 ⌘W 失效')
+  const row = (binding) => ({ id: 'x', binding })
+  assert.deepEqual(mod.fallbackBindingFor(row({ code: 'KeyG', modifiers: ['primary', 'shift'] }), { code: 'KeyJ' }), { code: 'KeyG', modifiers: ['primary', 'shift'] }, '宿主改键后兜底用新键，不用旧键')
+  assert.equal(mod.fallbackBindingFor(row(null), { code: 'KeyJ' }), null, '用户解绑 → 无兜底键（旧键失效）')
+  assert.deepEqual(mod.fallbackBindingFor(null, { code: 'KeyJ', modifiers: ['primary'] }), { code: 'KeyJ', modifiers: ['primary'] }, '命令未注册时才用声明默认键')
+  assert.equal(mod.fallbackBindingFor(null, null), null)
 }
 
-console.log('dom fallback tests: ok')
+// 17. bindingMatches: 按 code + 精确修饰键匹配，mac 的 primary=meta、其它平台=ctrl
+{
+  const ev = (code, mods) => ({
+    code,
+    shiftKey: mods.indexOf('shift') >= 0,
+    altKey: mods.indexOf('alt') >= 0,
+    metaKey: mods.indexOf('meta') >= 0,
+    ctrlKey: mods.indexOf('ctrl') >= 0,
+  })
+  const target = { code: 'KeyG', modifiers: ['primary', 'shift'] }
+  assert.equal(mod.bindingMatches(ev('KeyG', ['meta', 'shift']), target, true), true, '⌘⇧G 命中')
+  assert.equal(mod.bindingMatches(ev('KeyJ', ['meta']), target, true), false, '旧键 ⌘J 不再命中')
+  assert.equal(mod.bindingMatches(ev('KeyG', ['meta']), target, true), false, '缺 shift 不命中')
+  assert.equal(mod.bindingMatches(ev('KeyJ', ['ctrl']), { code: 'KeyJ', modifiers: ['primary'] }, false), true, '非 mac primary=ctrl')
+  assert.equal(mod.bindingMatches(ev('KeyJ', ['meta']), { code: 'KeyJ', modifiers: ['primary'] }, false), false, '非 mac meta 不当作 primary')
+  assert.equal(mod.bindingMatches(ev('Digit4', ['meta']), { code: 'Digit4', modifiers: ['primary'] }, true), true, '⌘4 命中')
+}
+
+console.log('fallback binding tests: ok')
