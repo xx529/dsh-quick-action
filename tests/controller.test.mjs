@@ -228,3 +228,15 @@ console.log('pending card tests: ok')
 }
 
 console.log('read mode default tests: ok')
+
+// 12. crashState: 只有连续两次未正常退出才压制本次运行，正常退出会清零
+{
+  const first = mod.crashState('token', null)
+  assert.deepEqual(first, { streak: 1, suppress: false }, '一次异常退出不关闭默认开启')
+  const second = mod.crashState('token', '1')
+  assert.deepEqual(second, { streak: 2, suppress: true }, '连续两次异常退出才压制本次运行')
+  const clean = mod.crashState(null, '5')
+  assert.deepEqual(clean, { streak: 0, suppress: false }, '正常退出清零，下次不再压制')
+}
+
+console.log('crash state tests: ok')

@@ -69,7 +69,7 @@ node tests/controller.test.mjs      # controller 单测，末尾打印 "controll
 
 ## 5. 已知问题（别再踩）
 
-- 滚动淡出输入框（阅读收起）：只对 `[data-composer-seat]` 做 `opacity`（**绝不加 transform / will-change**），滚动停下后淡入；**默认开启**（`readModeFrom(stored, suppressed)`：只有 `stored === 'off'` 才算用户显式关闭），`⌘⇧H` 手动开关，开关状态在 `localStorage["dsh-quick-action.readmode"]`。崩溃自保护（`dsh-quick-action.session-token` 未清理）只把 `crashSuppressed` 设为本次运行有效、**不要再 `setReadMode(false)`**，否则一次异常退出会让默认永久变 off；启动时在通知条提示原因。若再出现黑屏，立刻设为 off 并回退。
+- 滚动淡出输入框（阅读收起）：只对 `[data-composer-seat]` 做 `opacity`（**绝不加 transform / will-change**），滚动停下后淡入；**默认开启**（`readModeFrom(stored, suppressed)`：只有 `stored === 'off'` 才算用户显式关闭），`⌘⇧H` 手动开关，开关状态在 `localStorage["dsh-quick-action.readmode"]`。崩溃自保护用 `crashState(hadToken, streak)` 计算：只有 `dsh-quick-action.session-token` 连续两次未清理（`dsh-quick-action.crash-streak >= 2`）才把 `crashSuppressed` 置为本次运行有效，**绝不要 `setReadMode(false)`**；正常退出（`pagehide/beforeunload`）会清零 streak。若再出现黑屏，立刻设为 off 并回退。
   **不要再用 `transform`/`opacity` 动 `[data-composer-seat]`**。
 - **待处理卡片与阅读收起的冲突（v0.2.6 已修）**：宿主的审批卡片（`ui-approval`）、回答卡片与计划待审卡片（`ui-user-questions`）都通过 `conversation.composer` 槽注入，DOM 上位于 `[data-composer-seat]` **内部**；整块 seat 淡出会连卡片一起隐藏且 `pointer-events:none` 点不到。隐藏前必须双重判定：`hasPendingCard(seat)`（稳定属性 `[data-approval-key]` / `[data-question-key]` / `[data-plan-review-key]`）或 controller 的 `activePending()`（`uiSession.sessionStatus.get(active).pendingInteraction`）任一为真就 `showComposer()` 并跳过隐藏；`render()` 里也要补一次还原，避免卡片在已隐藏状态下出现。
 - 左栏页脚"切回原生视图"开关已按要求删除；`sidebar.footer.action` 在当前侧栏布局下本来也渲染不出来。
