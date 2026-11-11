@@ -324,3 +324,16 @@ console.log('jumpTo tests: ok')
 }
 
 console.log('fallback binding tests: ok')
+
+// 18. sessionRegionFor: 只有主面板会话区（或标签条）允许 session 级快捷键
+{
+  assert.equal(mod.sessionRegionFor({}), true, '没有主面板 → 不限制')
+  assert.equal(mod.sessionRegionFor({ hasMain: true, inMain: true, globalPanel: false }), true, '主面板 conversation → 生效')
+  assert.equal(mod.sessionRegionFor({ hasMain: true, inMain: true, globalPanel: true }), false, '全局视图/配置不算会话区')
+  assert.equal(mod.sessionRegionFor({ hasMain: true, inMain: false }), false, '左侧栏/右侧栏不算会话区')
+  assert.equal(mod.sessionRegionFor({ hasMain: true, inMain: false, host: true }), true, '标签条本身算会话区')
+  assert.equal(mod.sessionRegionFor({ modal: true, hasMain: true, inMain: true }), false, '模态框内不算')
+  assert.equal(mod.sessionRegionFor({ modal: true, host: true }), false, '模态框优先级最高')
+}
+
+console.log('session region tests: ok')
