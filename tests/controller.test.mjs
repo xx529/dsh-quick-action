@@ -229,14 +229,21 @@ console.log('pending card tests: ok')
 
 console.log('read mode default tests: ok')
 
-// 12. crashState: 只有连续两次未正常退出才压制本次运行，正常退出会清零
+// 12. crashState: 只有「短命会话」（<2 分钟）连续两次才压制；长会话/正常退出清零
 {
-  const first = mod.crashState('token', null)
-  assert.deepEqual(first, { streak: 1, suppress: false }, '一次异常退出不关闭默认开启')
-  const second = mod.crashState('token', '1')
-  assert.deepEqual(second, { streak: 2, suppress: true }, '连续两次异常退出才压制本次运行')
-  const clean = mod.crashState(null, '5')
-  assert.deepEqual(clean, { streak: 0, suppress: false }, '正常退出清零，下次不再压制')
+  assert.deepEqual(mod.crashState('token', null, 5000), { streak: 1, suppress: false }, '一次 5 秒退出不压制')
+  assert.deepEqual(mod.crashState('token', '1', 5000), { streak: 2, suppress: true }, '连续两次短命 → 压制本次')
+  assert.deepEqual(mod.crashState('token', '19', 3 * 3600 * 1000), { streak: 0, suppress: false }, '上次跑了 3 小时（token 残留）→ 视为正常，清零')
+  assert.deepEqual(mod.crashState(null, '19', -1), { streak: 0, suppress: false }, '没有 token（正常退出）→ 清零')
+  assert.deepEqual(mod.crashState('token', '1', -1), { streak: 0, suppress: false }, 'token 无法解析时间 → 按正常处理')
+}
+
+// 12b. tokenAge: 从 qa-<毫秒>-<随机> 解析上次启动时间
+{
+  assert.equal(mod.tokenAge('qa-1000-abc', 3000), 2000)
+  assert.equal(mod.tokenAge('qa-1000-abc'), Date.now() - 1000 > 0 ? mod.tokenAge('qa-1000-abc') : -1)
+  assert.equal(mod.tokenAge('bogus', 3000), -1)
+  assert.equal(mod.tokenAge(null, 3000), -1)
 }
 
 console.log('crash state tests: ok')
