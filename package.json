@@ -1,6 +1,6 @@
 {
   "name": "dsh-quick-action",
-  "version": "0.2.17",
+  "version": "0.2.18",
   "private": true,
   "description": "Quick actions and session tabs for DeepSeek Harness: workspace + title tabs, status badges, keyboard switching",
   "type": "module",

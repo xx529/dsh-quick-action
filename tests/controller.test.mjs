@@ -337,3 +337,16 @@ console.log('fallback binding tests: ok')
 }
 
 console.log('session region tests: ok')
+
+// 19. keyLabel: tooltip 里的键名由 binding 生成（不再写死键名）
+{
+  assert.equal(mod.keyLabel({ code: 'KeyG', modifiers: ['primary', 'shift'] }, true), '⌘⇧G', 'mac primary+shift')
+  assert.equal(mod.keyLabel({ code: 'KeyG', modifiers: ['primary', 'shift'] }, false), 'Ctrl+Shift+G', '非 mac')
+  assert.equal(mod.keyLabel({ code: 'KeyJ', modifiers: ['primary'] }, true), '⌘J')
+  assert.equal(mod.keyLabel({ code: 'Digit5', modifiers: ['primary', 'alt'] }, true), '⌘⌥5')
+  assert.equal(mod.keyLabel({ code: 'BracketLeft', modifiers: ['primary', 'shift'] }, true), '⌘⇧[', '括号显示为符号')
+  assert.equal(mod.keyLabel({ code: 'BracketRight', modifiers: ['primary', 'shift'] }, true), '⌘⇧]')
+  assert.equal(mod.keyLabel(null, true), null, '无绑定返回 null（提示里不显示）')
+}
+
+console.log('key label tests: ok')
