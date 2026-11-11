@@ -41,6 +41,7 @@ node tests/controller.test.mjs      # controller 单测，末尾打印 "controll
   会变成两条同 id 行（可能双标签条）；bundle 段已覆盖该行。
 - 旧的 vendor 克隆 + `node_modules` 软链方案已清理（v0.2.6 起不再需要）。
 - 升级：`plugin_manager install_bundle` 换 tag 即可；改完 `lib/client.js` 需重启 Harness 才生效。
+- 若 `install_bundle` 报 `connection to github.com timed out after 5000ms`（DSH 进程里的代理坏了，shell 去代理直连 GitHub 正常）：先 `npm pack`，把 tarball 解包内容覆盖到 `~/.dsh/profiles/desktop/node_modules/dsh-quick-action`（版本号会变，`dependencies`/lockfile 暂留旧 tag），重启即生效；等网络恢复再跑一次 `install_bundle` 归一。
 
 ## 4. 关键约束与坑（改了会坏）
 
