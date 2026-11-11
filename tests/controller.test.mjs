@@ -271,3 +271,27 @@ console.log('strip active tests: ok')
 }
 
 console.log('reorder tests: ok')
+
+// 15. jumpTo: ⌘1–⌘9 按标签从左到右跳转（1 起算，越界/非整数返回 false）
+{
+  storage.value = JSON.stringify({ version: 1, enabled: true, ids: ['a', 'b', 'c'], active: 'a' })
+  const rows = {
+    a: { sessionId: 'a', title: 'A', retainedBy: { mainView: 1 } },
+    b: { sessionId: 'b', title: 'B' },
+    c: { sessionId: 'c', title: 'C' },
+  }
+  const { ctx, opened } = makeCtx({ list: { phase: 'ready', ids: ['a', 'b', 'c'], byId: rows } })
+  const ctrl = mod.createController(ctx, { storage, lang: () => 'en' })
+  assert.equal(ctrl.jumpTo(2), true)
+  assert.deepEqual(opened, ['b'], '第 2 个标签打开 b')
+  assert.equal(ctrl.jumpTo(9), false, '越界返回 false')
+  assert.equal(ctrl.jumpTo(0), false, '0 无效')
+  assert.equal(ctrl.jumpTo(1.5), false, '非整数无效')
+  assert.deepEqual(opened, ['b'], '无效调用不导航')
+  ctrl.reorder(['c', 'a', 'b'])
+  opened.length = 0
+  assert.equal(ctrl.jumpTo(1), true)
+  assert.deepEqual(opened, ['c'], '重排后 ⌘1 跟随新顺序')
+}
+
+console.log('jumpTo tests: ok')
