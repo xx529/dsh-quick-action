@@ -89,6 +89,7 @@ node tests/controller.test.mjs      # controller 单测，末尾打印 "controll
 - 持久化：`localStorage['dsh-quick-action.tabs.v1']`，格式 `{version:1, enabled, ids, active}`；
   `ids` 去重、上限 50，`validId` 拒绝空/超长/控制字符。设备切换/调试用 `window.__dshQuickAction`
   （`dispose` / `snapshot`）。
+- tab 拖动排序（v0.2.11）：`pointerdown` 落在 `.qa-tab`（`.qa-close` 与 `data-draft=true` 的影子标签除外），位移 >6px 且竖向 <10px 才进入拖动；拖动中用 `setPointerCapture` + `pointermove` 按各 tab 中点实时 `insertBefore`；松手收集 DOM 顺序交给 controller `reorder(ids)`（必须恰好覆盖全部持久化 id，否则返回 false）再 `render()`。`Esc` 取消（清 DOM 变更用 `lastSignature=''` 强制重排），取消/完成后 `suppressClickUntil` 350ms 拦截紧随的 click，避免拖动误导航。边缘 44px 内 rAF 自动 `scrollLeft`。**不要给 `.qa-tab` 加 transform 来做跟手动画**，只需 `data-dragging` 样式（z-index/背景/阴影）。
 - chip 分隔线（v0.2.10）：`.qa-tab::after` 画左侧 1px 竖线（`left:-3.5px;top:14px;height:18px`，颜色 `--qa-sep`），`.qa-tab + .qa-tab::after` 才显示；隐藏规则只写四条：`.qa-tab[data-active=true]::after`、`.qa-tab:hover::after`、`.qa-tab[data-active=true] + .qa-tab::after`、`.qa-tab:hover + .qa-tab::after`（**不要再用 `:has()` 反向选择**，会把相邻标签的线藏错位置）。`.qa-list` 间距 6px 给线留位。
 - 状态字形统一为「方案 A」：14×14 外环 + 1.5px 描边，内置符号 弧/?/!/清单/点；一律内联 SVG，颜色用语义 token（`currentColor`）。
 

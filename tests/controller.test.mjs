@@ -249,3 +249,25 @@ console.log('crash state tests: ok')
 }
 
 console.log('strip active tests: ok')
+
+// 14. reorder: 拖动排序写回 state.ids 并持久化；非法/未变化输入被拒绝
+{
+  storage.value = JSON.stringify({ version: 1, enabled: true, ids: ['a', 'b', 'c'], active: 'b' })
+  const rows = {
+    a: { sessionId: 'a', title: 'A', retainedBy: { mainView: 1 } },
+    b: { sessionId: 'b', title: 'B' },
+    c: { sessionId: 'c', title: 'C' },
+  }
+  const { ctx } = makeCtx({ list: { phase: 'ready', ids: ['a', 'b', 'c'], byId: rows } })
+  const ctrl = mod.createController(ctx, { storage, lang: () => 'en' })
+  assert.equal(ctrl.reorder(['c', 'a', 'b']), true, '合法重排返回 true')
+  assert.deepEqual(ctrl.snapshot().ids, ['c', 'a', 'b'])
+  assert.equal(ctrl.snapshot().active, 'a', '重排不改当前会话')
+  assert.equal(ctrl.reorder(['c', 'a', 'b']), false, '顺序未变化返回 false')
+  assert.equal(ctrl.reorder(['c', 'a']), false, '缺项拒绝')
+  assert.equal(ctrl.reorder(['c', 'a', 'a']), false, '重复项拒绝')
+  assert.equal(ctrl.reorder(['c', 'a', 'zzz']), false, '未知 id 拒绝')
+  assert.deepEqual(ctrl.snapshot().ids, ['c', 'a', 'b'], '被拒绝的输入不改状态')
+}
+
+console.log('reorder tests: ok')
