@@ -37,22 +37,23 @@ node tests/controller.test.mjs
 
 ## 当前安装状态（本机）
 
-当前 desktop profile 的安装源是**本地 tag `v0.2.6`**（GitHub 推送仍被网络挡住，先本地快进副本）：
+desktop profile 已改为**正式 bundle 安装**（v0.2.6 起）：
 
-- 代码克隆在 `~/.dsh/profiles/desktop/vendor/dsh-quick-action`（tag v0.2.6，detached HEAD）；
-- `~/.dsh/profiles/desktop/node_modules/dsh-quick-action` 软链到该目录；
-- `~/.dsh/profiles/desktop/cordis.patch.yml` 末尾保留启用段（insert `quick-action`）。
+- `plugin_manager install_bundle` 目标 `github:xx529/dsh-quick-action#v0.2.6`；
+- `~/.dsh/profiles/desktop/package.json` 的 `dependencies` 里是 `github:xx529/dsh-quick-action#v0.2.6`，并已加入 `dsh.profile.bundles`；
+- 包本体在 `~/.dsh/profiles/desktop/node_modules/dsh-quick-action`（0.2.6），行插入由包内 `cordis.patch.yml` 提供；
+- 旧的 vendor 克隆、`node_modules` 软链、profile `cordis.patch.yml` 里的手工 insert 段都已清理。
 
-更新到新 tag：
+升级：
 
 ```sh
-cd ~/.dsh/profiles/desktop/vendor/dsh-quick-action
-git fetch --tags origin && git checkout vX.Y.Z
+# 在本机用插件管理器（或面板）执行
+plugin_manager install_bundle github:xx529/dsh-quick-action#vX.Y.Z
 ```
 
-正式安装（网络恢复后）：`plugin_manager install_bundle` 目标 `github:xx529/dsh-quick-action#vX.Y.Z`；成功后删除上面的 vendor/软链与 patch 段，改由 bundle 自带 patch 生效。
+**不要**在 profile 的 `cordis.patch.yml` 里再手工 `insert: quick-action`：`insert` 不校验重复 id，会留下两条同 id 行。改完需要重启 DSH 才生效。
 
-> `plugin_manager install_bundle` 在本机失败的原因：DSH 进程环境里的代理 `127.0.0.1:7897` 对 GitHub 报 `SSL_ERROR_SYSCALL`；而 shell 去掉代理后直连可用，所以改用「GitHub 克隆 + 软链」的等效安装。
+> 历史：早期 `plugin_manager install_bundle` 因 DSH 进程环境里的代理 `127.0.0.1:7897` 对 GitHub 报 `SSL_ERROR_SYSCALL` 而失败，当时改用「GitHub 克隆 + 软链 + 手工 insert」的等效安装；v0.2.6 推送后该问题消失，已恢复正式安装。
 
 ## 已知问题 / 待验证
 

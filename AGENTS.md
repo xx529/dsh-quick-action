@@ -33,12 +33,14 @@ node --check lib/client.js          # 语法检查（无依赖）
 node tests/controller.test.mjs      # controller 单测，末尾打印 "controller tests: ok"
 ```
 
-安装（当前方式）：
-- 代码来自 **GitHub tag**：克隆在 `~/.dsh/profiles/desktop/vendor/dsh-quick-action`（当前 v0.2.0），
-  `~/.dsh/profiles/desktop/node_modules/dsh-quick-action` 软链到它，profile patch 里保留 `quick-action` 的 insert 段。
-- 更新：`cd ~/.dsh/profiles/desktop/vendor/dsh-quick-action && git fetch --tags && git checkout vX.Y.Z`。
-- 网络恢复后应改为 `plugin_manager install_bundle` 目标 `github:xx529/dsh-quick-action#vX.Y.Z`，并清理上述 vendor/软链/patch 段。
-- 改完 `lib/client.js` 需刷新 Harness 页面才生效；改 `AGENTS.md`/文档不需要。
+安装（当前方式，v0.2.6 起已转为正式 bundle 安装）：
+- 走 `plugin_manager install_bundle`，目标 `github:xx529/dsh-quick-action#vX.Y.Z`。
+  它会写入 `~/.dsh/profiles/desktop/package.json` 的 `dependencies` 与 `dsh.profile.bundles`，
+  包内 `cordis.patch.yml` 自带 `quick-action` 的 insert 段。
+- **不要再在 profile 的 `cordis.patch.yml` 里手工 `insert: quick-action`**：`insert` 不校验重复 id，
+  会变成两条同 id 行（可能双标签条）；bundle 段已覆盖该行。
+- 旧的 vendor 克隆 + `node_modules` 软链方案已清理（v0.2.6 起不再需要）。
+- 升级：`plugin_manager install_bundle` 换 tag 即可；改完 `lib/client.js` 需重启 Harness 才生效。
 
 ## 4. 关键约束与坑（改了会坏）
 
