@@ -295,3 +295,14 @@ console.log('reorder tests: ok')
 }
 
 console.log('jumpTo tests: ok')
+
+// 16. domFallback: 宿主注册成功后 DOM 兜底必须让位（改键后旧键不再幽灵触发）
+{
+  assert.equal(mod.domFallback(false, true, true), true, '宿主注册失败 → 用 DOM 兜底')
+  assert.equal(mod.domFallback(true, true, true), false, '宿主接管 → 不再兜底（⌘J 改成 ⌘⇧G 后 ⌘J 失效）')
+  assert.equal(mod.domFallback(true, false, true), false, '宿主接管且读不到绑定 → 交给宿主')
+  assert.equal(mod.domFallback(true, false, false), true, 'closeTab 默认无键 → 保留 ⌘W 兜底')
+  assert.equal(mod.domFallback(true, true, false), false, 'closeTab 被用户改键 → 旧 ⌘W 失效')
+}
+
+console.log('dom fallback tests: ok')
