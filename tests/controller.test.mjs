@@ -183,3 +183,36 @@ console.log('controller tests: ok')
 }
 
 console.log('attention tests: ok')
+
+// 9. activePending: 仅当当前会话在等用户处理（审批/回答/计划）时为 true（输入框淡出的守卫）
+{
+  storage.value = JSON.stringify({ version: 1, enabled: true, ids: ['a', 'b'], active: 'a' })
+  const rows = {
+    a: { sessionId: 'a', title: 'A', retainedBy: { mainView: 1 } },
+    b: { sessionId: 'b', title: 'B' },
+  }
+  const status = new Map([['a', { pendingInteraction: { kind: 'question' } }], ['b', { running: true }]])
+  const { ctx } = makeCtx({ list: { phase: 'ready', ids: ['a', 'b'], byId: rows }, status })
+  const ctrl = mod.createController(ctx, { storage, lang: () => 'en' })
+  assert.equal(ctrl.activePending(), true, 'active session waiting for answer must block composer hide')
+  status.delete('a')
+  assert.equal(ctrl.activePending(), false, 'running/reading session does not block hide')
+}
+
+console.log('activePending tests: ok')
+
+// 10. hasPendingCard: 识别宿主注入到 composer seat 里的审批/回答/计划待审卡片
+{
+  const fakeSeat = (attrs) => ({
+    querySelector: (sel) => (attrs.some((a) => sel.includes('[' + a + ']')) ? { attr: attrs[0] } : null),
+  })
+  assert.equal(mod.hasPendingCard(fakeSeat(['data-approval-key'])), true)
+  assert.equal(mod.hasPendingCard(fakeSeat(['data-question-key'])), true)
+  assert.equal(mod.hasPendingCard(fakeSeat(['data-plan-review-key'])), true)
+  assert.equal(mod.hasPendingCard(fakeSeat([])), false)
+  assert.equal(mod.hasPendingCard(null), false)
+  assert.equal(mod.hasPendingCard({}), false, '没有 querySelector 的节点不能抛错')
+  assert.match(mod.pendingCardSelector, /data-approval-key/)
+}
+
+console.log('pending card tests: ok')

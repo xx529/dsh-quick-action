@@ -8,6 +8,7 @@ DeepSeek Harness 的快捷操作插件。第一个功能：顶部**会话标签�
 - `⌘⇧[` / `⌘⇧]` 切换上一个/下一个会话；标签栏内 `←` `→` 也可切换。这两个也已经注册进宿主快捷键表（Web 端默认 `⌥⌘⇧[` / `⌥⌘⇧]`），可在设置里改键。
 - 向上翻阅对话（距底部 >88px、输入框为空且未聚焦）时，输入框**淡出隐藏**；滚回底部 / 聚焦输入框 / `⌘I` 时淡入。
   只做 `opacity`，不移动元素；带崩溃自保护：若上次进程非正常退出，本次启动会自动关闭该功能；`⌘⇧H` 可随时开关「阅读收起」。
+  底部出现**审批卡片 / 回答卡片 / 计划待审卡片**时永不隐藏（这些卡片由宿主插件注入到输入框区域内，整块淡出会连卡片一起藏掉且点不到），状态恢复后自动回到正常逻辑。
 - `⌘I` 把焦点放到对话输入框（光标落在末尾），可以直接开始输入。已通过宿主 `ctx.shortcuts` 注册（设置 → 快捷键里可见、可改键）；焦点已经在输入框内时命令返回 `pass`，不拦截编辑器自己的 `⌘I`。
 - `⌘J` 跳到下一个「需要你」的会话：按 审批 > 计划评审 > 回答 > 未读 的优先级轮转，连按可逐个遍历。
 - `⌘W` 关闭当前会话标签（等同点标签上的 ×；不停止会话）。`⌘J` 已通过宿主 `ctx.shortcuts` 注册，可在「设置 → 快捷键」里改键；`⌘W` 当前版本的 `page.close` 默认键仍是 ⌘W（但未实际绑定），插件把「关闭当前会话标签」也注册进了设置（显示为「暂无快捷键」），运行时由插件的 window 监听兜底；可在设置里给它绑定 ⌘W。**注意**：DSH 桌面端默认把 `⌘W` 分给「关闭页面/窗口」，如果按下后关掉的是窗口而不是标签，请在 设置 → 快捷键 里把「关闭页面」改到别的键，`⌘W` 才会落到插件。
@@ -36,9 +37,9 @@ node tests/controller.test.mjs
 
 ## 当前安装状态（本机）
 
-当前 desktop profile 的安装源是 **GitHub tag `v0.2.0`**：
+当前 desktop profile 的安装源是**本地 tag `v0.2.6`**（GitHub 推送仍被网络挡住，先本地快进副本）：
 
-- 代码克隆在 `~/.dsh/profiles/desktop/vendor/dsh-quick-action`（tag v0.2.0，detached HEAD）；
+- 代码克隆在 `~/.dsh/profiles/desktop/vendor/dsh-quick-action`（tag v0.2.6，detached HEAD）；
 - `~/.dsh/profiles/desktop/node_modules/dsh-quick-action` 软链到该目录；
 - `~/.dsh/profiles/desktop/cordis.patch.yml` 末尾保留启用段（insert `quick-action`）。
 
@@ -55,7 +56,8 @@ git fetch --tags origin && git checkout vX.Y.Z
 
 ## 已知问题 / 待验证
 
-- 输入框随滚动自动隐藏会触发渲染器黑屏（疑似宿主 compositing bug），已移除；如仍需要，建议改成手动切换。
+- 「阅读收起」（输入框随滚动淡出）v0.2.5 重新启用，改用纯 `opacity`；v0.2.6 起在底部是审批/回答/计划待审卡片时禁用隐藏。若再出现渲染器黑屏，把 `localStorage["dsh-quick-action.readmode"]` 设为 `off`（或按 `⌘⇧H`），并回退该功能。
+- 待处理卡片不隐藏的判定：DOM 标记 `[data-approval-key]` / `[data-question-key]` / `[data-plan-review-key]`（宿主插件稳定属性）+ 会话状态 `pendingInteraction` 双重兜底，两者任一命中即不隐藏。
 - 左栏页脚的「切回原生视图」开关已按要求删除。
 
 
