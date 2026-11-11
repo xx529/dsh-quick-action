@@ -39,9 +39,9 @@ node tests/controller.test.mjs
 
 desktop profile 已改为**正式 bundle 安装**（v0.2.6 起）：
 
-- `plugin_manager install_bundle` 目标 `github:xx529/dsh-quick-action#v0.2.6`（v0.2.7/v0.2.8 暂为手工同步，见下）；
+- `plugin_manager install_bundle` 目标 `github:xx529/dsh-quick-action#v0.2.8`；
 - `~/.dsh/profiles/desktop/package.json` 的 `dependencies` 里是 `github:xx529/dsh-quick-action#v0.2.6`，并已加入 `dsh.profile.bundles`；
-- 包本体在 `~/.dsh/profiles/desktop/node_modules/dsh-quick-action`（内容已同步到 v0.2.8），行插入由包内 `cordis.patch.yml` 提供；
+- 包本体在 `~/.dsh/profiles/desktop/node_modules/dsh-quick-action`（0.2.8），`pnpm-lock.yaml` 指向 v0.2.8 的 tarball；行插入由包内 `cordis.patch.yml` 提供；
 - 旧的 vendor 克隆、`node_modules` 软链、profile `cordis.patch.yml` 里的手工 insert 段都已清理。
 
 升级：
@@ -55,7 +55,7 @@ plugin_manager install_bundle github:xx529/dsh-quick-action#vX.Y.Z
 
 > 历史：早期 `plugin_manager install_bundle` 因 DSH 进程环境里的代理 `127.0.0.1:7897` 对 GitHub 报 `SSL_ERROR_SYSCALL` 而失败，当时改用「GitHub 克隆 + 软链 + 手工 insert」的等效安装；v0.2.6 推送后该问题消失，已恢复正式安装。
 >
-> **v0.2.7+ 的安装备注**：安装时 DSH 进程里的代理 `127.0.0.1:7897` 再次失效（`install_bundle` 报 `connection to github.com timed out after 5000ms`，而 shell 去掉代理直连 GitHub 是 200）。因此 v0.2.7、v0.2.8 都是先用 `npm pack` 出的 tarball 覆盖同步到 `node_modules/dsh-quick-action`（与仓库提交逐字节一致）；profile 的 `dependencies`/`pnpm-lock.yaml` 仍记着 v0.2.6。等 DSH 网络恢复后重跑一次 `plugin_manager install_bundle github:xx529/dsh-quick-action#vX.Y.Z`（当前 v0.2.8）即可把声明与 lockfile 归一。
+> **代理异常时的安装备注**：本机 DSH 进程曾出现 `install_bundle` 报 `connection to github.com timed out after 5000ms`（进程里的代理 `127.0.0.1:7897` 对 GitHub 不通，而 shell 去掉代理直连正常）。v0.2.7、v0.2.8 期间先用 `npm pack` 覆盖同步、再用内置 pnpm 直连（去掉代理环境变量后 `pnpm add github:xx529/dsh-quick-action#v0.2.8`）完成安装，`dependencies`、`pnpm-lock.yaml`、`node_modules` 三者已一致。
 
 ## 已知问题 / 待验证
 
