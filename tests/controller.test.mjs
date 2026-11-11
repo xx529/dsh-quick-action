@@ -216,3 +216,15 @@ console.log('activePending tests: ok')
 }
 
 console.log('pending card tests: ok')
+
+// 11. readModeFrom: 阅读收起默认开启，只有显式 'off' 才关闭；崩溃保护只压制当次运行
+{
+  assert.equal(mod.readModeFrom(null, false), true, '未存过 → 默认开启')
+  assert.equal(mod.readModeFrom(undefined, false), true)
+  assert.equal(mod.readModeFrom('on', false), true)
+  assert.equal(mod.readModeFrom('off', false), false, '用户显式关闭才关闭')
+  assert.equal(mod.readModeFrom('on', true), false, '崩溃后本次压制')
+  assert.equal(mod.readModeFrom('off', true), false, '显式关闭 + 压制仍关闭')
+}
+
+console.log('read mode default tests: ok')
