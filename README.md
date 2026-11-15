@@ -1,6 +1,8 @@
 # dsh-quick-action
 
-DeepSeek Harness 的快捷操作插件。第一个功能：顶部**会话标签条**（复刻并改进 `dsh-session-tabs`）。
+DeepSeek Harness 的快捷操作插件。当前功能：顶部**会话标签条**（复刻并改进 `dsh-session-tabs`）+ 居中**对话快速切换器**（`⌘K`）。
+
+- **对话快速切换器**：`⌘K`（Web `⌥⌘K`，可在设置改键）居中打开 640px 面板，分「已打开」与「最近使用」两组；标题模糊搜索（连续子串优先、字符子序列兜底），命中字符高亮；`↑` `↓` 选择、`↵` 打开、`esc` / 点遮罩关闭；打开后自动切换会话并加入标签条。已打开组按标签顺序、最近使用按 `updatedAt` 倒序，排除 blank / 子智能体 / 归档会话。可访问性：`role=dialog` + `aria-modal`、输入框 `combobox`、列表 `listbox`、关闭后焦点回到打开前元素。
 
 - 双行 chip 标签：工作区名 9px 在上、标题 13px 在下，左对齐；状态字形 14px（未读点 7px）；标签高 46、顶部圆角 23、活动标签带与分线同色的 1px 外框，弹性宽度 132–260px。
 - 状态只体现在 **session 标题**上（workspace 行保持原色、待处理 chip 不加底色）：运行中/连接中=标题彩色**扫光（走马灯）**；待审批/待回答/待评审=标题彩色**呼吸灯**；完成未读=标题加粗 + 胶囊右侧一个 6px 绿点（与 workspace 行垂直居中）；空闲无装饰。
@@ -42,7 +44,7 @@ node --check lib/client.js
 node tests/controller.test.mjs
 ```
 
-原型：Figma 文件 `action` 的页面「Session Tabs 交互原型」，截图在 `docs/prototype/`。
+原型：Figma 文件 `action` 的页面「Session Tabs 交互原型」；切换器原型在本地 Figma 文档 `Untitled` 的页面「Quick Switcher · 对话切换器」（画板与规格见 `docs/figma/README.md`），截图在 `docs/prototype/`。
 调研依据：`research/native-ui-notes.md`，实机截图在 `docs/verify/`。
 
 ## 当前安装状态（本机）

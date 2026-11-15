@@ -6,9 +6,10 @@
 ## 1. 项目定位
 
 DSH（DeepSeek Harness）的 Web 客户端插件，包名/插件 id 均为 `dsh-quick-action`。
-当前唯一功能是顶部**会话标签条**（复刻并改进旧插件 `dsh-session-tabs`）：双行 chip
-（工作区名 9px + 标题 13px）、状态字形、⌘⇧[ / ] 与 ⌘I 快捷键、修复"新会话空标签"。
-定位是"快捷操作"合集，后续会继续加功能；新增功能沿用同一 host/client 两半身结构。
+当前功能：顶部**会话标签条**（复刻并改进旧插件 `dsh-session-tabs`）：双行 chip
+（工作区名 9px + 标题 13px）、状态字形、⌘⇧[ / ] 与 ⌘I 快捷键、修复"新会话空标签"；
+以及 v0.3.0 新增的居中**对话快速切换器**（⌘K）：已打开 / 最近使用分组、标题模糊搜索、
+↑↓/↵/esc 键盘操作。定位是"快捷操作"合集，后续继续加功能；新增功能沿用同一 host/client 两半身结构。
 
 ## 2. 目录与职责
 
@@ -17,14 +18,14 @@ DSH（DeepSeek Harness）的 Web 客户端插件，包名/插件 id 均为 `dsh-
 | `package.json` | 包声明。`exports["./client"]` 必须指向 `lib/client.js`，否则浏览器半身不会被发布；`dsh.bundle.patch` 指向 `cordis.patch.yml`。 |
 | `cordis.patch.yml` | Bundle patch：`insert` 一行 Loader 条目 `id: quick-action`，使包成为 enabled Loader 条目（这是 client-modules scanner 发布浏览器模块的前提）；同时禁用 `dsh-session-tabs`（两条标签条会重叠）。行 id 保持稳定。 |
 | `index.mjs` | Host 半身，**刻意 inert**：只有 `name`/`inject`/`apply`，`apply` 仅打日志。全部行为在浏览器半身。 |
-| `lib/client.js` | 浏览器半身，真正实现（~587 行）：`window.__ModuleLoader__.load({id, factory})` → `WORDS` 双语、`CSS` 字符串、`parse/serialize`、`createController`（纯逻辑，可单测）、`install`（DOM 挂载）、`apply`。 |
+| `lib/client.js` | 浏览器半身，真正实现（~1900 行）：`window.__ModuleLoader__.load({id, factory})` → `WORDS` 双语、`CSS` 字符串、`parse/serialize`、`fuzzyMatch/filterSwitcher`（纯匹配）、`createController`（纯逻辑，可单测）、`install`（DOM 挂载：标签条 + ⌘K 切换器）、`apply`。 |
 | `locale/{zh,en}.json` | 插件管理器里显示的标题/描述。 |
 | `icon.svg` | 插件图标。 |
 | `tests/controller.test.mjs` | 无依赖单测（node:assert + 假 window 与假 ctx），覆盖存储解析、状态映射、影子标签晋升、脏数据自愈、循环切换、关闭导航。 |
 | `research/native-ui-notes.md` | 原生能力调研（sessionStatus/sessions.list 语义、空白标签根因、slot 清单、快捷键占用、主题 token），含证据；引用结论时优先信它。 |
-| `docs/prototype/` | Figma 原型截图（7 张，01–07）。 |
+| `docs/prototype/` | Figma 原型截图（14 张，01–08 标签条；09–14 切换器）。 |
 | `docs/verify/` | 实机验证截图（20 张，含标签条迭代与 chrome-tabs 对比）。 |
-| `docs/figma/` | 原型归档：7 张画板的矢量 PDF（`pdf/`）+ 画板尺寸/关键规格/恢复方式说明（`README.md`）。 |
+| `docs/figma/` | 原型归档：标签条 7 张画板的矢量 PDF（`pdf/`）；切换器 6 张画板的规格 + PNG（`README.md` 新增章节）。 |
 
 ## 3. 开发与验证命令
 
@@ -110,14 +111,26 @@ node tests/controller.test.mjs      # controller 单测，末尾打印 "controll
 
 ## 7. Figma 与设计
 
-- 原型在 Figma 文件 `action` 的页面**「Session Tabs 交互原型」**；截图在 `docs/prototype/`。
-- 归档（7 张矢量 PDF + 画板尺寸/关键规格/恢复方式）在 `docs/figma/README.md`；改视觉前先对照 `docs/prototype` 与
+- 原型在 Figma 文件 `action` 的页面**「Session Tabs 交互原型」**；切换器原型在本地 Figma 文档 `Untitled` 的页面 **「Quick Switcher · 对话切换器」**（fileKey `local:996b5455-bec4-4f33-87a4-dd91aa93cf84`，画板 `01`–`06`，node id 见 `docs/figma/README.md`）；截图在 `docs/prototype/`。
+- 归档（标签条 7 张矢量 PDF + 切换器画板尺寸/关键规格/恢复方式）在 `docs/figma/README.md`；改视觉前先对照 `docs/prototype` 与
   `docs/verify`，不要凭空重设计。
 - 涉及 Figma 编辑时必须先读 `figma-workbench` skill，并确认目标文档；本仓库任务默认**不动 Figma**。
 
 ## 8. 修改后检查清单
 
 1. `node --check lib/client.js` + `node tests/controller.test.mjs` 全绿；新逻辑补 controller 单测。
-2. 刷新 GUI 实测：标签条渲染、切换/关闭/新建、⌘⇧[ ]、⌘I 聚焦；截图存 `docs/verify/`。
+2. 刷新 GUI 实测：标签条渲染、切换/关闭/新建、⌘⇧[ ]、⌘I 聚焦、⌘K 打开切换器并搜索/↑↓/↵/esc；截图存 `docs/verify/`。
 3. 视觉改动必须真机截图验证（先 `agent-desktop skills get desktop` 再操作；它只支持 AXPress 语义点击）。
-4. 确认没有改 profile、没有动 Figma、没有删除用户数据（关闭/禁用都要可回退）。
+4. 确认没有改 profile、没有删除用户数据（关闭/禁用都要可回退）。
+
+## 9. 会话快速切换器（v0.3.0）
+
+- 设计：Figma 页面「Quick Switcher · 对话切换器」，6 张画板（打开 / 搜索 / 无结果 / 选择后 / 快捷键配置 / 动效分镜）；规格见 `docs/figma/README.md`。实现前先看 09–14 的 PNG，不要凭空改视觉。
+- 入口：`quick-action.openSwitcher`，默认 desktop `⌘K`、web `⌥⌘K`；通过 `ctx.inject(['shortcuts'])` 注册，可改键。`fallbackSlots` 第一项是 `switcher`，`globalKeydown` 面板打开时只响应 Esc 与同一个开关键（其它会话快捷键不执行）。
+- 数据：`controller.switcherRows(query)`；`已打开` = `rows()`（标签顺序，含 draft 影子标签），`最近使用` = `list.byId` 其余会话按 `updatedAt` 倒序，排除 blank / `origin==='subagent'` / `archived` / 已在已打开组的 id。搜索用 `fuzzyMatch`：连续子串优先，其次字符子序列；`positions` 用于 `<mark>` 高亮；过滤不重排。
+- DOM：`install` 内懒创建 `.qa-switcher`，`position:fixed` 挂 `document.body`（不在 React 树内，无需 MutationObserver 重挂）；**不能用 `.qa-host` 作用域的 `--qa-*` 变量**，面板样式直接使用 `--dsw-alias-*` token + `color-mix`；`html[data-qa-switcher]` 只负责打开时锁滚动。
+- 交互：打开时记录 `document.activeElement` 并在关闭（esc / 遮罩 / esc 键帽）后恢复；点行/↵ 时 `closeSwitcher(false)` 不恢复焦点，直接 `ctrl.open(id)` 并 `refresh()`。输入框 keydown 自己处理 ↑↓/↵/esc/Tab，并判 `isComposing || keyCode===229`；`Tab` 阻止焦点离开面板。
+- 结构：`role=dialog` + `aria-modal`，输入框 `role=combobox` + `aria-activedescendant`，列表 `role=listbox`，行 `role=option` + `aria-selected`；空态不是列表项。打开动效：遮罩 120ms、面板 200ms `cubic-bezier(.2,.8,.2,1)`（y+8px、scale .98→1）；关闭 140ms；`prefers-reduced-motion` 只保留 120ms 透明度。
+- 坑：面板的 `.qa-switcher-name` 用 `textContent`/`createTextNode` 构建，**不要用 innerHTML 拼标题**；Emoji/代理对的高亮索引按 UTF-16 与 `indexOf` 一致，若以后改 `Array.from` 要同步调整位置。
+- 测试：`fuzzyMatch` / `filterSwitcher` / `switcherRows` 在 `tests/controller.test.mjs` 第 20–21 组。
+

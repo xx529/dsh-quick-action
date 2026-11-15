@@ -357,3 +357,55 @@ console.log('session region tests: ok')
 }
 
 console.log('key label tests: ok')
+
+// 20. fuzzyMatch: 标题子串优先；不连续时退回字符子序列；返回高亮区间
+{
+  const hit = mod.fuzzyMatch('复刻 dsh 会话标签插件', '标签')
+  assert.deepEqual(hit.positions, [9, 10], '连续子串返回命中位置')
+  assert.ok(hit.score > 900, '子串得分高于子序列')
+  const seq = mod.fuzzyMatch('复刻 dsh 会话标签插件', '复插')
+  assert.deepEqual(seq.positions, [0, 11], '不连续时按字符子序列命中')
+  assert.ok(seq.score < hit.score, '子序列得分更低')
+  assert.equal(mod.fuzzyMatch('会话标签', 'zzz'), null, '完全不匹配返回 null')
+  assert.deepEqual(mod.fuzzyMatch('abc', '  ').positions, [], '空查询不过滤')
+  assert.deepEqual(mod.fuzzyMatch('ABC', 'bc').positions, [1, 2], '大小写不敏感')
+  assert.deepEqual(mod.filterSwitcher([{ title: '会话标签' }, { title: '其他' }], '标签').map((x) => x.row.title), ['会话标签'])
+}
+
+console.log('fuzzy match tests: ok')
+
+// 21. switcherRows: 已打开按标签顺序；最近按 updatedAt 倒序；排除 blank/subagent/归档/重复
+{
+  storage.value = JSON.stringify({ version: 1, enabled: true, ids: ['a', 'b'], active: 'a' })
+  const rows = {
+    a: { sessionId: 'a', title: '会话标签插件', retainedBy: { mainView: 1 }, updatedAt: 50 },
+    b: { sessionId: 'b', title: '工具图标', updatedAt: 60 },
+    c: { sessionId: 'c', title: '最近标签', updatedAt: 300 },
+    d: { sessionId: 'd', title: '旧会话', updatedAt: 100 },
+    e: { sessionId: 'e', title: '空标签', blank: true, updatedAt: 999 },
+    f: { sessionId: 'f', title: '子智能体', origin: 'subagent', updatedAt: 999 },
+    g: { sessionId: 'g', title: '归档会话', updatedAt: 999 },
+  }
+  const { ctx } = makeCtx({
+    list: { phase: 'ready', ids: Object.keys(rows), byId: rows },
+    workspaces: { items: [], archivedSessionIds: ['g'] },
+  })
+  const ctrl = mod.createController(ctx, { storage, lang: () => 'zh' })
+  const all = ctrl.switcherRows('')
+  assert.deepEqual(all.opened.map((r) => r.id), ['a', 'b'], '已打开按标签顺序')
+  assert.equal(all.opened[0].current, true, '当前会话标记')
+  assert.deepEqual(all.recent.map((r) => r.id), ['c', 'd'], '最近使用按 updatedAt 倒序')
+  assert.equal(all.total, 4)
+  assert.ok(!all.recent.some((r) => ['e', 'f', 'g'].includes(r.id)), 'blank/subagent/归档不进最近使用')
+
+  const byTitle = ctrl.switcherRows('标签')
+  assert.deepEqual(byTitle.opened.map((r) => r.id), ['a'], '标题过滤保留命中项')
+  assert.deepEqual(byTitle.recent.map((r) => r.id), ['c'])
+  assert.deepEqual(byTitle.opened[0].positions, [2, 3], '返回标题高亮位置')
+  assert.equal(byTitle.total, 2)
+
+  const none = ctrl.switcherRows('不存在的标题')
+  assert.equal(none.total, 0, '无匹配返回空结果')
+}
+
+console.log('switcher rows tests: ok')
