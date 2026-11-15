@@ -8,7 +8,7 @@
 DSH（DeepSeek Harness）的 Web 客户端插件，包名/插件 id 均为 `dsh-quick-action`。
 当前功能：顶部**会话标签条**（复刻并改进旧插件 `dsh-session-tabs`）：双行 chip
 （工作区名 9px + 标题 13px）、状态字形、⌘⇧[ / ] 与 ⌘I 快捷键、修复"新会话空标签"；
-以及 v0.3.0 新增的居中**对话快速切换器**（⌘K）：已打开 / 最近使用分组、标题模糊搜索、
+以及 v0.3.0 新增的居中**对话快速切换器**（⌘J）：已打开 / 最近使用分组、标题模糊搜索、
 ↑↓/↵/esc 键盘操作。定位是"快捷操作"合集，后续继续加功能；新增功能沿用同一 host/client 两半身结构。
 
 ## 2. 目录与职责
@@ -18,7 +18,7 @@ DSH（DeepSeek Harness）的 Web 客户端插件，包名/插件 id 均为 `dsh-
 | `package.json` | 包声明。`exports["./client"]` 必须指向 `lib/client.js`，否则浏览器半身不会被发布；`dsh.bundle.patch` 指向 `cordis.patch.yml`。 |
 | `cordis.patch.yml` | Bundle patch：`insert` 一行 Loader 条目 `id: quick-action`，使包成为 enabled Loader 条目（这是 client-modules scanner 发布浏览器模块的前提）；同时禁用 `dsh-session-tabs`（两条标签条会重叠）。行 id 保持稳定。 |
 | `index.mjs` | Host 半身，**刻意 inert**：只有 `name`/`inject`/`apply`，`apply` 仅打日志。全部行为在浏览器半身。 |
-| `lib/client.js` | 浏览器半身，真正实现（~1900 行）：`window.__ModuleLoader__.load({id, factory})` → `WORDS` 双语、`CSS` 字符串、`parse/serialize`、`fuzzyMatch/filterSwitcher`（纯匹配）、`createController`（纯逻辑，可单测）、`install`（DOM 挂载：标签条 + ⌘K 切换器）、`apply`。 |
+| `lib/client.js` | 浏览器半身，真正实现（~1900 行）：`window.__ModuleLoader__.load({id, factory})` → `WORDS` 双语、`CSS` 字符串、`parse/serialize`、`fuzzyMatch/filterSwitcher`（纯匹配）、`createController`（纯逻辑，可单测）、`install`（DOM 挂载：标签条 + ⌘J 切换器）、`apply`。 |
 | `locale/{zh,en}.json` | 插件管理器里显示的标题/描述。 |
 | `icon.svg` | 插件图标。 |
 | `tests/controller.test.mjs` | 无依赖单测（node:assert + 假 window 与假 ctx），覆盖存储解析、状态映射、影子标签晋升、脏数据自愈、循环切换、关闭导航。 |
@@ -64,7 +64,7 @@ node tests/controller.test.mjs      # controller 单测，末尾打印 "controll
    + 幂等重挂（`host.isConnected` 检查），不要只 `append` 一次。
 5. **快捷键**：用 `window.addEventListener('keydown', ..., false)`（bubble），先判
    `event.defaultPrevented || event.isComposing || keyCode===229`（中文组字不拦截）；⌘⇧[ / ] 切换、
-   ⌘I 聚焦输入框（光标落末尾）、⌘J 跳到待处理（审批>计划>回答>未读 轮转，候选来自全部会话而非仅标签）、⌘W 关闭当前标签（等同点 ×）。**快捷键机制**：⌘I、⌘J、⌘⇧[ / ] 与「关闭当前会话标签」通过 `ctx.inject(['shortcuts'])` + `scope.shortcuts.register(...)` 注册（⌘I/⌘J 有默认键、设置面板可见可改键；⌘I 在输入框已聚焦时 resolve 返回 `pass` 放行）；`page.close` 的默认键仍占着 ⌘W，所以 closeTab 注册时不要设默认键（`defaults: {}`），否则注册抛 `Conflicting shortcut defaults`；⌘W 的实际触发靠 window keydown 兜底（page.close 当前未绑定，键能到 DOM），用户也可在设置里给 closeTab 绑 ⌘W。标签栏内 ←/→ 也切换。桌面端未注册键才会到达 DOM，避免硬编码
+   ⌘I 聚焦输入框（光标落末尾）、⌘⇧J 跳到待处理（⌘J 已让给对话列表）（审批>计划>回答>未读 轮转，候选来自全部会话而非仅标签）、⌘W 关闭当前标签（等同点 ×）。**快捷键机制**：⌘I、⌘⇧J、⌘⇧[ / ] 与「关闭当前会话标签」通过 `ctx.inject(['shortcuts'])` + `scope.shortcuts.register(...)` 注册（⌘I/⌘⇧J 有默认键、设置面板可见可改键；⌘I 在输入框已聚焦时 resolve 返回 `pass` 放行）；`page.close` 的默认键仍占着 ⌘W，所以 closeTab 注册时不要设默认键（`defaults: {}`），否则注册抛 `Conflicting shortcut defaults`；⌘W 的实际触发靠 window keydown 兜底（page.close 当前未绑定，键能到 DOM），用户也可在设置里给 closeTab 绑 ⌘W。标签栏内 ←/→ 也切换。桌面端未注册键才会到达 DOM，避免硬编码
    ⌘W/⌘B/⌘⌥B/⌘T 等已占用键；宿主有 `ctx.shortcuts.register`，本插件未用。
 6. **主题 token**：只用 `--dsw-alias-state-{business,success,warn,error,done,idle}-*` 与
    `--dsw-alias-{bg,border,label,interactive}-*`；**没有 `warning`、没有 `danger`**（旧插件写
@@ -93,7 +93,7 @@ node tests/controller.test.mjs      # controller 单测，末尾打印 "controll
 - tab 拖动排序（v0.2.11 起；v0.2.12 改为跟随鼠标）：拖动中**不移动 DOM**，只写 inline `transform`：被拖 chip 跟随指针 `translateX(dx + Δscroll)`，其它 chip 按「移除原位置左移 / 目标位置右移」叠加 `translateX(±(宽度+间距))`，靠 `.qa-tab{transition:transform .18s}` 平滑让位；落点用 `pointer contentX` 与各 chip **拖动开始时测得的中心**比较得出 target，松手才把 target 顺序交给 `ctrl.reorder(ids)` 并 `render()` 重排 DOM。回落瞬间先给所有 chip `transition:none`、清 transform，再在下一帧恢复过渡，避免回弹动画。
 - 拖动中的 chip **必须不透明**，且 hover/pending 的背景规则必须排除拖动态：`.qa-tab[data-active=false]:not([data-dragging=true]):hover` 与 `.qa-tab[data-pending=true][data-active=false]:not([data-dragging=true])` —— 否则非当前标签拖动时被 `:hover`（6% 透明）覆盖，又出现文字穿透；当前标签不中这条所以看起来是好的（v0.2.19 修）。`background:color-mix(in srgb,var(--dsw-alias-label-primary) 8%,var(--qa-page))`（`--qa-page` 是不透明底色）；v0.2.12 曾用 9% 叠在 `transparent` 上，会透出下面 chip 的文字（用户报过）。另加 `0 0 0 1px var(--qa-line)` 描边以在重叠时区分边缘。
 - 旧实现备忘（v0.2.11，已废弃）：`pointerdown` 落在 `.qa-tab`（`.qa-close` 与 `data-draft=true` 的影子标签除外），位移 >6px 且竖向 <10px 才进入拖动；拖动中用 `setPointerCapture` + `pointermove` 按各 tab 中点实时 `insertBefore`；松手收集 DOM 顺序交给 controller `reorder(ids)`（必须恰好覆盖全部持久化 id，否则返回 false）再 `render()`。`Esc` 取消（清 DOM 变更用 `lastSignature=''` 强制重排），取消/完成后 `suppressClickUntil` 350ms 拦截紧随的 click，避免拖动误导航。边缘 44px 内 rAF 自动 `scrollLeft`。**不要给 `.qa-tab` 加 transform 来做跟手动画**，只需 `data-dragging` 样式（z-index/背景/阴影）。
-- 头部通知区已删除（v0.2.38）：标签条下方不再有 `.qa-notice`，`flashNotice`/`startupNotice`/`noticeEl` 全部移除；隐藏头部、阅读收起、保持唤醒、⌘J 无可跳转等一律不显示文案，只用按钮/图标状态表达。新增功能不要再加提示行。
+- 头部通知区已删除（v0.2.38）：标签条下方不再有 `.qa-notice`，`flashNotice`/`startupNotice`/`noticeEl` 全部移除；隐藏头部、阅读收起、保持唤醒、⌘⇧J 无可跳转等一律不显示文案，只用按钮/图标状态表达。新增功能不要再加提示行。
 - 提示文案不许写死键名（v0.2.18）：标签条 `listEl.title` 由 `hintText(words)` 用当前配置生成（`keyLabel(binding, mac)` 格式化；未绑定的命令整段省略；`⌘1–⌘9` 仅在 tab1/tab9 都存在且修饰键相同才折叠成范围），并订阅 `shortcuts.catalog.subscribe(refreshHint)`，在设置里改键后立即刷新。新增命令时提示片段加到 `hintText` 与 WORDS 的 `hint*` 字段，不要在 `WORDS.hint` 里写键名。
 - 工作区标题注意力入口（v0.2.45）：在 `[data-slot="sidebar.workspaces"]` 里找 `[class*="sectionHeader"]`，把铃铛按钮**绝对定位**挂到 sectionHeader 上、放在 `[class*="searchSlot"]` 左侧（`left = search.left - header.left - 30`，垂直居中）；**不要插进 headerActions**（它的 `max-width:60px` + overflow 会让第三个图标把原有 icon 挤重叠）。sectionHeader 若为 static 则补 `position:relative`；窗口 resize 时 `schedule()` 重新定位；**铃铛常显**（宽侧栏时一直显示，不因 0 待处理而消失）；按钮尺寸 28x28、与 host `.iconButton` 对齐（top 按 `(header.height-28)/2` 计算，垂直中心与搜索图标一致）；有需要处理时右上角显示 6px 红点（`.qa-attn-dot`，`--dsw-alias-state-error-primary`，带 1.5px 深色描边压边；定位 `top:2px; right:0`，是铃铛图形的右上角，不是按钮正上方——`top:4/right:4` 会看起来压在铃铛顶正中）；铃铛位置在搜索图标左侧、不占 headerActions 布局宽度（v0.2.48）；**注入到侧栏的组件不能使用 `.qa-host` 作用域的 `--qa-*` 变量**（不在该子树里，var() 会失效成透明/继承），hover 背景与颜色必须直接用宿主 token：`var(--dsw-alias-interactive-bg-hover)`、`var(--dsw-alias-label-tertiary)`→hover `label-primary`（v0.2.51）。**铃铛直接复用宿主图标按钮的 class**（`className = sampleButton.className + ' qa-attn'`，**每次 refresh 都补一次**：header 图标可能比插件晚挂载，首次创建时 sample 为空，之后必须再对齐，否则颜色停在继承的 tertiary、hover 时像多一层高亮 v0.2.54），只保留绝对定位与红点，颜色/hover/focus 全部由宿主样式决定——自己写 hover 会多出「图标变亮」的高亮（v0.2.53 定稿）。**不要自己加 `:focus-visible` 描边**：点击后按钮残留焦点会多出一圈高亮；鼠标点击后在 handler 里 `blur()`（`event.detail > 0`），保留键盘焦点态（v0.2.52）；**统计范围是全部会话（list.byId），不是仅标签条里的 rows**（避免只在侧栏存在的会话被漏算）；红点固定红色，分类明细放 title tooltip；宽模式（存在 `[class*="sectionLabel"]`）且 total>0 才显示，否则移除；点击 `ctrl.focusAttention()` 跳下一个。标题同时给出分类明细。
 - 保持唤醒（v0.2.35；v0.2.36 改位置）：**DOM 注入**太阳按钮到 `[data-slot="settings.launcher"]`（头像/设置按钮）之后、同一行内（与 `dsh-mobile-plugin` 相同做法，另加 `outlet.closest('[data-slot="sidebar.settings"]')` 校验；行宽 <120 时退回 `sidebar.footer.action` 行）；`ensureAwakeButton()` 在每次 `refresh()` 调用，React 移除后会被 MutationObserver 补回；按钮点击 `wakeToggle`，状态由 `wakeNotify` 同步 `data-on/title/aria-pressed`。快捷键，快捷键 `quick-action.keepAwake`（桌面 ⌘⇧K / Web ⌥⌘⇧K），实现用 **`navigator.wakeLock.request('screen')`**（不写系统配置；DSH 退出/页面隐藏自动释放）。状态：`wake.on`（已拿到 sentinel）/`wake.wanted`（用户希望开）——系统收回时 on=false 但 wanted 保持，`visibilitychange` 回到 visible 时自动重新申请；`pagehide`/dispose 调 `wakeDisable()`；`prefers-reduced-motion` 无关。调试入口 `window.__dshQuickAction.wake()`。**不要再往 flashNotice/其它函数里塞清理代码**（v0.2.35 期间误把 dispose 清理插进了 `flashNotice`/`toggleReadMode`，导致每次提示都把唤醒释放掉；已修）。
@@ -119,14 +119,14 @@ node tests/controller.test.mjs      # controller 单测，末尾打印 "controll
 ## 8. 修改后检查清单
 
 1. `node --check lib/client.js` + `node tests/controller.test.mjs` 全绿；新逻辑补 controller 单测。
-2. 刷新 GUI 实测：标签条渲染、切换/关闭/新建、⌘⇧[ ]、⌘I 聚焦、⌘K 打开切换器并搜索/↑↓/↵/esc；截图存 `docs/verify/`。
+2. 刷新 GUI 实测：标签条渲染、切换/关闭/新建、⌘⇧[ ]、⌘I 聚焦、⌘J 打开切换器并搜索/↑↓/↵/esc；截图存 `docs/verify/`。
 3. 视觉改动必须真机截图验证（先 `agent-desktop skills get desktop` 再操作；它只支持 AXPress 语义点击）。
 4. 确认没有改 profile、没有删除用户数据（关闭/禁用都要可回退）。
 
 ## 9. 会话快速切换器（v0.3.0）
 
 - 设计：Figma 页面「Quick Switcher · 对话切换器」，6 张画板（打开 / 搜索 / 无结果 / 选择后 / 快捷键配置 / 动效分镜）；规格见 `docs/figma/README.md`。实现前先看 09–14 的 PNG，不要凭空改视觉。
-- 入口：`quick-action.openSwitcher`，默认 desktop `⌘K`、web `⌥⌘K`；通过 `ctx.inject(['shortcuts'])` 注册，可改键。`fallbackSlots` 第一项是 `switcher`，`globalKeydown` 面板打开时只响应 Esc 与同一个开关键（其它会话快捷键不执行）。
+- 入口：`quick-action.openSwitcher`，默认 desktop `⌘J`、web `⌥⌘J`；原 `⌘J` 的「跳到待处理」迁移到 `⌘⇧J`；通过 `ctx.inject(['shortcuts'])` 注册，可改键。`fallbackSlots` 第一项是 `switcher`，`globalKeydown` 面板打开时只响应 Esc 与同一个开关键（其它会话快捷键不执行）。
 - 数据：`controller.switcherRows(query)`；`已打开` = `rows()`（标签顺序，含 draft 影子标签），`最近使用` = `list.byId` 其余会话按 `updatedAt` 倒序，排除 blank / `origin==='subagent'` / `archived` / 已在已打开组的 id。搜索用 `fuzzyMatch`：连续子串优先，其次字符子序列；`positions` 用于 `<mark>` 高亮；过滤不重排。
 - DOM：`install` 内懒创建 `.qa-switcher`，`position:fixed` 挂 `document.body`（不在 React 树内，无需 MutationObserver 重挂）；**不能用 `.qa-host` 作用域的 `--qa-*` 变量**，面板样式直接使用 `--dsw-alias-*` token + `color-mix`；`html[data-qa-switcher]` 只负责打开时锁滚动。
 - 交互：打开时记录 `document.activeElement` 并在关闭（esc / 遮罩 / esc 键帽）后恢复；点行/↵ 时 `closeSwitcher(false)` 不恢复焦点，直接 `ctrl.open(id)` 并 `refresh()`。输入框 keydown 自己处理 ↑↓/↵/esc/Tab，并判 `isComposing || keyCode===229`；`Tab` 阻止焦点离开面板。
