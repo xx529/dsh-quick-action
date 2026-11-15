@@ -123,11 +123,11 @@ node tests/controller.test.mjs      # controller 单测，末尾打印 "controll
 3. 视觉改动必须真机截图验证（先 `agent-desktop skills get desktop` 再操作；它只支持 AXPress 语义点击）。
 4. 确认没有改 profile、没有删除用户数据（关闭/禁用都要可回退）。
 
-## 9. 会话快速切换器（v0.3.0）
+## 9. 会话快速切换器（v0.3.2）
 
 - 设计：Figma 页面「Quick Switcher · 对话切换器」，6 张画板（打开 / 搜索 / 无结果 / 选择后 / 快捷键配置 / 动效分镜）；规格见 `docs/figma/README.md`。实现前先看 09–14 的 PNG，不要凭空改视觉。
 - 入口：`quick-action.openSwitcher`，默认 desktop `⌘J`、web `⌥⌘J`；原 `⌘J` 的「跳到待处理」迁移到 `⌘⇧J`；通过 `ctx.inject(['shortcuts'])` 注册，可改键。`fallbackSlots` 第一项是 `switcher`，`globalKeydown` 面板打开时只响应 Esc 与同一个开关键（其它会话快捷键不执行）。
-- 数据：`controller.switcherRows(query)`；`已打开` = `rows()`（标签顺序，含 draft 影子标签），`最近使用` = `list.byId` 其余会话按 `updatedAt` 倒序，排除 blank / `origin==='subagent'` / `archived` / 已在已打开组的 id。搜索用 `fuzzyMatch`：连续子串优先，其次字符子序列；`positions` 用于 `<mark>` 高亮；过滤不重排。
+- 数据：`controller.switcherRows(query)`；`已打开` = `rows()`（标签顺序，含 draft 影子标签），`最近使用` = `list.byId` 其余会话按 `updatedAt` 倒序，排除 blank / `origin==='subagent'` / `archived` / 已在已打开组的 id。搜索用 `fuzzyMatch` 同时匹配**标题与工作区名**：连续子串优先，其次字符子序列；`positions` / `wsPositions` 分别用于标题与工作区名的 `<mark>` 高亮；过滤不重排。
 - DOM：`install` 内懒创建 `.qa-switcher`，`position:fixed` 挂 `document.body`（不在 React 树内，无需 MutationObserver 重挂）；**不能用 `.qa-host` 作用域的 `--qa-*` 变量**，面板样式直接使用 `--dsw-alias-*` token + `color-mix`；`html[data-qa-switcher]` 只负责打开时锁滚动。
 - 交互：打开时记录 `document.activeElement` 并在关闭（esc / 遮罩 / esc 键帽）后恢复；点行/↵ 时 `closeSwitcher(false)` 不恢复焦点，直接 `ctrl.open(id)` 并 `refresh()`。输入框 keydown 自己处理 ↑↓/↵/esc/Tab，并判 `isComposing || keyCode===229`；`Tab` 阻止焦点离开面板。
 - 结构：`role=dialog` + `aria-modal`，输入框 `role=combobox` + `aria-activedescendant`，列表 `role=listbox`，行 `role=option` + `aria-selected`；空态不是列表项。打开动效：遮罩 120ms、面板 200ms `cubic-bezier(.2,.8,.2,1)`（y+8px、scale .98→1）；关闭 140ms；`prefers-reduced-motion` 只保留 120ms 透明度。

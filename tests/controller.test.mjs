@@ -370,6 +370,13 @@ console.log('key label tests: ok')
   assert.deepEqual(mod.fuzzyMatch('abc', '  ').positions, [], '空查询不过滤')
   assert.deepEqual(mod.fuzzyMatch('ABC', 'bc').positions, [1, 2], '大小写不敏感')
   assert.deepEqual(mod.filterSwitcher([{ title: '会话标签' }, { title: '其他' }], '标签').map((x) => x.row.title), ['会话标签'])
+  const wsHit = mod.filterSwitcher([{ title: '会话 A', workspace: 'htdot-project' }, { title: '会话 B', workspace: 'other' }], 'htdot')
+  assert.equal(wsHit.length, 1, '工作区名也参与匹配')
+  assert.deepEqual(wsHit[0].positions, [], '仅工作区命中时标题没有高亮')
+  assert.deepEqual(wsHit[0].wsPositions, [0, 1, 2, 3, 4], '返回工作区高亮位置')
+  const bothHit = mod.filterSwitcher([{ title: 'htdot 标题', workspace: 'htdot-project' }], 'htdot')[0]
+  assert.deepEqual(bothHit.positions, [0, 1, 2, 3, 4], '标题命中高亮标题')
+  assert.deepEqual(bothHit.wsPositions, [0, 1, 2, 3, 4], '工作区同时命中时也高亮')
 }
 
 console.log('fuzzy match tests: ok')
@@ -378,17 +385,21 @@ console.log('fuzzy match tests: ok')
 {
   storage.value = JSON.stringify({ version: 1, enabled: true, ids: ['a', 'b'], active: 'a' })
   const rows = {
-    a: { sessionId: 'a', title: '会话标签插件', retainedBy: { mainView: 1 }, updatedAt: 50 },
-    b: { sessionId: 'b', title: '工具图标', updatedAt: 60 },
-    c: { sessionId: 'c', title: '最近标签', updatedAt: 300 },
-    d: { sessionId: 'd', title: '旧会话', updatedAt: 100 },
+    a: { sessionId: 'a', title: '会话标签插件', cwd: '/tmp/htdot-project', retainedBy: { mainView: 1 }, updatedAt: 50 },
+    b: { sessionId: 'b', title: '工具图标', cwd: '/tmp/open-design', updatedAt: 60 },
+    c: { sessionId: 'c', title: '最近标签', cwd: '/tmp/htdot-project', updatedAt: 300 },
+    d: { sessionId: 'd', title: '旧会话', cwd: '/tmp/other', updatedAt: 100 },
     e: { sessionId: 'e', title: '空标签', blank: true, updatedAt: 999 },
     f: { sessionId: 'f', title: '子智能体', origin: 'subagent', updatedAt: 999 },
     g: { sessionId: 'g', title: '归档会话', updatedAt: 999 },
   }
   const { ctx } = makeCtx({
     list: { phase: 'ready', ids: Object.keys(rows), byId: rows },
-    workspaces: { items: [], archivedSessionIds: ['g'] },
+    workspaces: { items: [
+      { workspaceId: 'w1', path: '/tmp/htdot-project', title: 'htdot-project', sessionIds: ['a', 'c'] },
+      { workspaceId: 'w2', path: '/tmp/open-design', title: 'open-design', sessionIds: ['b'] },
+      { workspaceId: 'w3', path: '/tmp/other', title: 'other', sessionIds: ['d'] },
+    ], archivedSessionIds: ['g'] },
   })
   const ctrl = mod.createController(ctx, { storage, lang: () => 'zh' })
   const all = ctrl.switcherRows('')
@@ -403,6 +414,17 @@ console.log('fuzzy match tests: ok')
   assert.deepEqual(byTitle.recent.map((r) => r.id), ['c'])
   assert.deepEqual(byTitle.opened[0].positions, [2, 3], '返回标题高亮位置')
   assert.equal(byTitle.total, 2)
+
+  const byWorkspace = ctrl.switcherRows('htdot')
+  assert.deepEqual(byWorkspace.opened.map((r) => r.id), ['a'], '工作区命中也进入已打开结果')
+  assert.deepEqual(byWorkspace.recent.map((r) => r.id), ['c'], '工作区命中也进入最近使用结果')
+  assert.deepEqual(byWorkspace.opened[0].positions, [], '仅工作区命中时标题不高亮')
+  assert.deepEqual(byWorkspace.opened[0].wsPositions, [0, 1, 2, 3, 4], '工作区名返回高亮位置')
+  assert.equal(byWorkspace.total, 2)
+
+  const byOpenWorkspace = ctrl.switcherRows('open')
+  assert.deepEqual(byOpenWorkspace.opened.map((r) => r.id), ['b'], '工作区 open-design 命中')
+  assert.equal(byOpenWorkspace.total, 1)
 
   const none = ctrl.switcherRows('不存在的标题')
   assert.equal(none.total, 0, '无匹配返回空结果')
