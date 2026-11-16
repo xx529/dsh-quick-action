@@ -257,6 +257,16 @@ console.log('crash state tests: ok')
 
 console.log('strip active tests: ok')
 
+// 13b. tabPlacement: 标签条挂在会话页内部；正常会话放在标题行下方，hero/loading 放页面最顶部
+{
+  assert.equal(mod.tabPlacement('active'), 'below-header', '正常会话：标题/视图行下方')
+  assert.equal(mod.tabPlacement('hero'), 'top', '新会话 hero：页面最顶部（标题行为空）')
+  assert.equal(mod.tabPlacement('settling'), 'top', '会话加载中：页面最顶部')
+  assert.equal(mod.tabPlacement(undefined), 'top')
+}
+
+console.log('tab placement tests: ok')
+
 // 14. reorder: 拖动排序写回 state.ids 并持久化；非法/未变化输入被拒绝
 {
   storage.value = JSON.stringify({ version: 1, enabled: true, ids: ['a', 'b', 'c'], active: 'b' })

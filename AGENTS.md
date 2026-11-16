@@ -6,7 +6,7 @@
 ## 1. 项目定位
 
 DSH（DeepSeek Harness）的 Web 客户端插件，包名/插件 id 均为 `dsh-quick-action`。
-当前功能：顶部**会话标签条**（复刻并改进旧插件 `dsh-session-tabs`）：双行 chip
+当前功能：**会话页顶部**的会话标签条（复刻并改进旧插件 `dsh-session-tabs`）：双行 chip
 （工作区名 9px + 标题 13px）、状态字形、⌘⇧[ / ] 与 ⌘I 快捷键、修复"新会话空标签"；
 以及 v0.3.0 新增的居中**对话快速切换器**（⌘J）：已打开 / 最近使用分组、标题模糊搜索、
 ↑↓/↵/esc 键盘操作。定位是"快捷操作"合集，后续继续加功能；新增功能沿用同一 host/client 两半身结构。
@@ -57,11 +57,7 @@ node tests/controller.test.mjs      # controller 单测，末尾打印 "controll
 3. **blank 会话是影子标签**：`startSession()` 会创建**真实持久化 id** 的 blank 会话。blank 绝不写进
    持久化 `ids`，只用内存 `draftId` 渲染一个占位标签；转正（`blank=false`/有标题）时**原地晋升**为正式标签；
    切走即收起。`sync()` 在 `phase==='ready'` 时还会剔除历史脏 blank/归档 id（自愈 localStorage）。
-4. **没有官方 tab 插槽**：标签条只能 DOM 注入。目标为 `#root [data-slot="main"]` 的祖先 column
-   （向上越过带 `data-slot` 的祖先），插入为该 column 的首个子元素；`slot.firstElementChild`
-   （跳过 `display:contents`）打 `data-qa-main` 撑高。**React 拥有 children**，会被 reconcile 移除，
-   所以必须 `MutationObserver(document.body, {childList,subtree,attributes,attributeFilter:['hidden','aria-hidden']})`
-   + 幂等重挂（`host.isConnected` 检查），不要只 `append` 一次。
+4. **没有官方 tab 插槽**：标签条只能 DOM 注入，但**必须挂在会话页内部**，不要挂到 `#root [data-slot="main"]` 的祖先 column（那个位置全局面板也会显示，正是 v0.3.x 之前的问题）。做法：`#root [data-slot="main"]` 内找 `[data-conversation-region="chat"]`，用 `closest('[data-phase]')` 拿会话页根节点（`kiGsTW_root`）；`tabPlacement(phase)` 决定位置——`active` 会话放在标题行 `header[data-window-drag]` 之后（标题 / 视图标签行下方），`hero` / `settling` 放页面最顶部（标题行是空的，放下面会留出空白带）。`[data-global-panel]` 或找不到会话页时 `host.hidden = true`，标签条随会话页一起消失。`slot.firstElementChild`（跳过 `display:contents`）仍打 `data-qa-main` 撑高。**React 拥有 children**，会被 reconcile 移除，所以必须 `MutationObserver(document.body, {childList,subtree,attributes,attributeFilter:['hidden','aria-hidden','data-global-panel']})` + 幂等重挂（`host.isConnected` 检查；回调里先判 `!host`，否则初始安装早于 `chrome()` 时会抛 `isConnected of undefined`），不要只 `append` 一次。
 5. **快捷键**：用 `window.addEventListener('keydown', ..., false)`（bubble），先判
    `event.defaultPrevented || event.isComposing || keyCode===229`（中文组字不拦截）；⌘⇧[ / ] 切换、
    ⌘I 聚焦输入框（光标落末尾）、⌘⇧J 跳到待处理（⌘J 已让给对话列表）（审批>计划>回答>未读 轮转，候选来自全部会话而非仅标签）、⌘W 关闭当前标签（等同点 ×）、⌘M 切换 dsh-remote 的 IDE/普通模式。**快捷键机制**：⌘I、⌘⇧J、⌘⇧[ / ]、「关闭当前会话标签」与「切换 IDE 模式」通过 `ctx.inject(['shortcuts'])` + `scope.shortcuts.register(...)` 注册（⌘I/⌘⇧J 有默认键、设置面板可见可改键；⌘I 在输入框已聚焦时 resolve 返回 `pass` 放行）；`page.close` 的默认键仍占着 ⌘W，所以 closeTab 注册时不要设默认键（`defaults: {}`），否则注册抛 `Conflicting shortcut defaults`；⌘W 的实际触发靠 window keydown 兜底（page.close 当前未绑定，键能到 DOM），用户也可在设置里给 closeTab 绑 ⌘W。标签栏内 ←/→ 也切换。桌面端未注册键才会到达 DOM，避免硬编码
@@ -76,7 +72,7 @@ node tests/controller.test.mjs      # controller 单测，末尾打印 "controll
 
 - 滚动淡出输入框（阅读收起）：只对 `[data-composer-seat]` 做 `opacity`（**绝不加 transform / will-change**），滚动停下后淡入；**默认开启**（`readModeFrom(stored, suppressed)`：只有 `stored === 'off'` 才算用户显式关闭），`⌘⇧H` 手动开关，开关状态在 `localStorage["dsh-quick-action.readmode"]`。崩溃自保护用 `crashState(hadToken, streak, ageMs)` 计算：只有上次会话 token 的年龄 `<120000ms`（启动后 2 分钟内就结束，`tokenAge()` 解析 `qa-<毫秒>-<随机>`）**且连续两次**（`dsh-quick-action.crash-streak >= 2`）才把 `crashSuppressed` 置为本次运行有效；正常关闭/长会话（token 残留但跑了很久）一律把 streak 清零。**绝不要 `setReadMode(false)`**。历史教训：早期只看 token 是否存在，DSH 退出时 pagehide 不一定触发，streak 被累加到 19，导致阅读收起永远被压制、看起来“默认没开”。压制提示存到 `startupNotice` 并保留 10 秒（render 用 `snap.notice || startupNotice`，否则会被下一次 render 立刻藏掉）。若再出现黑屏，立刻设为 off 并回退。
   **不要再用 `transform`/`opacity` 动 `[data-composer-seat]`**。
-- **全局视图/配置下的 tab 语义（v0.2.9）**：`ui-layout` 的 `renderSlot("main", {}, { entryKey: panelId ?? "conversation" })` 决定主面板内容；`panelId !== null` 时主面板 `<div class="…mainPanel" data-global-panel>` 带 `[data-global-panel]`，conversation 面板没有。侧栏的插件/插件市场/自动化任务/上下文洞察/能力面板都走这条，因此 `render()` 里用 `stripActive(snap.active, globalPanelOpen())`：全局页面时 active 置 null，不标任何 chip 为选中；点 tab 时 `uiWorkspace.openSession()` 会 `layout.selectPanel(null)` 自动切回会话。`MutationObserver` 的 `attributeFilter` 已加 `data-global-panel`，切换即时重绘。
+- **全局面板不再显示标签条（v0.4.0，取代 v0.2.9 的“取消选中”）**：`ui-layout` 的 `renderSlot("main", {}, { entryKey: panelId ?? "conversation" })` 决定主面板内容；`panelId !== null` 时主面板 `<div class="…mainPanel" data-global-panel>` 带 `[data-global-panel]`，conversation 面板没有。侧栏的插件/插件市场/自动化任务/上下文洞察/能力面板都走这条。因为标签条现在挂在会话页根节点（`[data-phase]`）内部，全局页面没有会话页，标签条随 `conversationPage()` 返回 null 一起隐藏；`render()` 仍用 `stripActive(snap.active, globalPanelOpen())` 兜底（全局页面 active 置 null）。`MutationObserver` 的 `attributeFilter` 含 `data-global-panel`，切换即时隐藏/重挂。**不要改回“只在全局页面取消选中、标签条继续显示”**——验收要求全局面板无标签。
 - **待处理卡片与阅读收起的冲突（v0.2.6 已修）**：宿主的审批卡片（`ui-approval`）、回答卡片与计划待审卡片（`ui-user-questions`）都通过 `conversation.composer` 槽注入，DOM 上位于 `[data-composer-seat]` **内部**；整块 seat 淡出会连卡片一起隐藏且 `pointer-events:none` 点不到。隐藏前必须双重判定：`hasPendingCard(seat)`（稳定属性 `[data-approval-key]` / `[data-question-key]` / `[data-plan-review-key]`）或 controller 的 `activePending()`（`uiSession.sessionStatus.get(active).pendingInteraction`）任一为真就 `showComposer()` 并跳过隐藏；`render()` 里也要补一次还原，避免卡片在已隐藏状态下出现。
 - 左栏页脚"切回原生视图"开关已按要求删除；`sidebar.footer.action` 在当前侧栏布局下本来也渲染不出来。
 - 未实测项：待审批/待回答的角标只有代码与单测覆盖；agent-desktop 只能 AXPress，标签内 × 未实机点验。
