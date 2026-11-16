@@ -431,3 +431,14 @@ console.log('fuzzy match tests: ok')
 }
 
 console.log('switcher rows tests: ok')
+
+// 22. dsh-remote IDE 切换按钮选择：IDE 开启时优先点「返回普通模式」，否则点会话头部的切换按钮
+{
+  const exit = { click() {} }
+  const toggle = { click() {} }
+  assert.equal(mod.ideToggleTarget({ querySelector: (sel) => sel === '[data-rw-ide-exit]' ? exit : toggle }), exit, 'IDE 开启时点退出按钮')
+  assert.equal(mod.ideToggleTarget({ querySelector: (sel) => sel === '[data-rw-ide-exit]' ? null : toggle }), toggle, 'IDE 关闭时点切换按钮')
+  assert.equal(mod.ideToggleTarget({ querySelector: () => null }), null, '没有按钮时返回 null')
+  assert.equal(mod.ideToggleTarget(null), null, '没有 root 时返回 null')
+}
+console.log('ide toggle target tests: ok')
