@@ -5,7 +5,7 @@ DeepSeek Harness 的快捷操作插件。当前功能：会话页顶部的**会�
 - **对话快速切换器**：`⌘J`（Web `⌥⌘J`，可在设置改键）居中打开 640px 面板，分「已打开」与「最近使用」两组；标题与工作区名模糊搜索（连续子串优先、字符子序列兜底），命中字符高亮；`↑` `↓` 选择、`↵` 打开、`esc` / 点遮罩关闭；打开后自动切换会话并加入标签条。已打开组按标签顺序、最近使用按 `updatedAt` 倒序，排除 blank / 子智能体 / 归档会话。空闲会话不显示状态点；只有进行中 / 待审批 / 待回复 / 待评审 / 完成未读才显示彩色点（保留占位，标题不跳动）。可访问性：`role=dialog` + `aria-modal`、输入框 `combobox`、列表 `listbox`、关闭后焦点回到打开前元素。
 
 - 双行标签：工作区名 9.5px 在上、标题 13px 在下，左对齐；标签高 36、顶部 10px 圆角，弹性宽度 124–260px。活动标签与标题行同色，底部用**向外翻的 16px 尾巴**接入标题行（不画分隔线），不再有外框；首屏/隐藏 header 时尾巴保留，直接接住下方内容。非活动标签只保留文字，悬停时出现内缩的圆角浅底。
-- 状态只体现在 **session 标题**上（workspace 行保持原色、待处理 chip 不加底色）：运行中/连接中=标题彩色**扫光（走马灯）**；待审批/待回答/待评审=标题彩色**呼吸灯**；完成未读=标题加粗 + 标签右上角一个 6px 绿点（活动/悬浮时让到关闭按钮左侧，避免重叠）；空闲无装饰。
+- 状态只体现在 **session 标题**上（workspace 行保持原色、待处理 chip 不加底色）：运行中/连接中=标题彩色**扫光（走马灯）**；待审批/待回答/待评审=标题彩色**呼吸灯**；完成未读=标题加粗 + 标签右上角一个 6px 绿点（固定在关闭按钮左侧，悬浮时位置不变）；空闲无装饰。
 - 关闭按钮仅悬浮/活动时出现；chip 最小宽度 124px（原 132px）。
 - 相邻标签之间保留一条 1px 的淡竖向分隔线；当前/悬浮标签两侧的分隔线自动隐藏，避免视觉噪音。标签条与页头之间不画横线，靠表面色差和活动标签自然衔接。
 - 标签支持**按住鼠标左右拖动排序**（移动超过 6px 才进入拖动，普通点击仍是切换会话）：拖动时 chip 跟着鼠标走、其它 chip 平滑让位（transform 过渡，不做硬切位）；拖到边缘自动横向滚动，`Esc` 取消；顺序写入 localStorage，重启后保留。
@@ -54,7 +54,7 @@ node tests/controller.test.mjs
 desktop profile 已改为**正式 bundle 安装**（v0.2.6 起）：
 
 - 本机当前安装 `github:xx529/dsh-quick-action#v0.3.6`（`node_modules/dsh-quick-action` 0.3.6，`pnpm-lock.yaml` 指向 `ef90500`）；
-- 本次 `v0.4.6` 的标签位置/视觉、hover 留白、标签间分隔线、收起 header 细线与外弧保留改动在本地提交后，需要 push 并打 `v0.4.6` tag，再执行 `plugin_manager install_bundle github:xx529/dsh-quick-action#v0.4.6`，重启 DSH 后生效；
+- 本次 `v0.4.7` 的标签位置/视觉、hover 留白、分隔线、收起 header 细线、外弧保留与未读点稳定位置改动在本地提交后，需要 push 并打 `v0.4.7` tag，再执行 `plugin_manager install_bundle github:xx529/dsh-quick-action#v0.4.7`，重启 DSH 后生效；
 - 包本体在 `~/.dsh/profiles/desktop/node_modules/dsh-quick-action`，行插入由包内 `cordis.patch.yml` 提供；
 - 旧的 vendor 克隆、`node_modules` 软链、profile `cordis.patch.yml` 里的手工 insert 段都已清理。
 
