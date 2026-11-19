@@ -45,6 +45,7 @@ const parsed = mod.parse(JSON.stringify({ version: 1, enabled: false, ids: ['a',
 assert.deepEqual(parsed.ids, ['a', 'b'])
 assert.equal(parsed.enabled, false)
 assert.equal(parsed.active, 'b')
+assert.deepEqual(mod.parse(JSON.stringify({ version: 1, enabled: true, ids: [], active: null, read: ['x', 'x'] })).read, ['x'], 'read 状态去重持久化')
 assert.equal(mod.parse('broken').ids.length, 0)
 
 // 2. status mapping: pending kinds win, then running, then unread
@@ -71,6 +72,34 @@ assert.equal(st.running, 'running')
 assert.equal(st.unread, 'unread')
 assert.equal(st.idle, 'idle')
 assert.equal(st.missing, 'loading')
+
+// 2b. markAllRead: 只把完成未读的标签变成本地已读；审批/回答/运行中不受影响
+{
+  storage.value = JSON.stringify({ version: 1, enabled: true, ids: ['u', 'p', 'r'], active: 'u', read: [] })
+  const list = { phase: 'ready', ids: ['u', 'p', 'r'], byId: { u: { sessionId: 'u', title: 'U' }, p: { sessionId: 'p', title: 'P' }, r: { sessionId: 'r', title: 'R' } } }
+  const status = new Map([
+    ['u', { completionUnread: true }],
+    ['p', { completionUnread: true, pendingInteraction: { kind: 'question' } }],
+    ['r', { running: true }],
+  ])
+  const { ctx } = makeCtx({ list, status })
+  const ctrl = mod.createController(ctx, { storage, lang: () => 'en' })
+  assert.equal(ctrl.status('u'), 'unread')
+  assert.equal(ctrl.status('p'), 'answer')
+  assert.equal(ctrl.status('r'), 'running')
+  assert.equal(ctrl.markAllRead(), 1, '只标记 1 个完成未读')
+  assert.equal(ctrl.status('u'), 'idle', '完成未读变成本地已读')
+  assert.equal(ctrl.status('p'), 'answer', '待回答不受影响')
+  assert.equal(ctrl.status('r'), 'running', '运行中不受影响')
+  assert.deepEqual(mod.parse(ctrl.snapshot().storage).read, ['u'])
+  status.set('u', { running: true })
+  ctrl.sync()
+  status.set('u', { completionUnread: true })
+  ctrl.sync()
+  assert.equal(ctrl.status('u'), 'unread', '新一轮完成未读会重新出现')
+}
+
+console.log('mark read tests: ok')
 
 // 3. blank main session is a shadow tab, never persisted; promotion keeps the same id
 {

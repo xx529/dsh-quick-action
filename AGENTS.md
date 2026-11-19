@@ -84,7 +84,7 @@ node tests/controller.test.mjs      # controller 单测，末尾打印 "controll
 - vanilla DOM + CSS 字符串（`var CSS = \`...\``），**无运行时依赖**；逻辑集中在 `createController`，
   DOM 只在 `install` 里，保证可单测。
 - 文案一律走 `WORDS.zh/en`，语言由 `document.documentElement.lang` 判断，别硬编码字符串。
-- 持久化：`localStorage['dsh-quick-action.tabs.v1']`，格式 `{version:1, enabled, ids, active}`；
+- 持久化：`localStorage['dsh-quick-action.tabs.v1']`，格式 `{version:1, enabled, ids, active, read}`；`read` 是本地「完成未读已读」覆盖列表，只影响本插件 `status()`（`unread -> idle`），不会清宿主 `completionUnread`；运行中/审批/回答/计划待审优先，仍显示原状态。`markAllRead()` 只遍历 `state.ids` 中当前 `unread` 的标签；`pruneRead()` 在 `phase==='ready'` 时剔除已运行/待处理/已打开/已离场的 id，让新一轮异常重新显示未读。
   `ids` 去重、上限 50，`validId` 拒绝空/超长/控制字符。设备切换/调试用 `window.__dshQuickAction`
   （`dispose` / `snapshot`）。
 - tab 拖动排序（v0.2.11 起；v0.2.12 改为跟随鼠标）：拖动中**不移动 DOM**，只写 inline `transform`：被拖 chip 跟随指针 `translateX(dx + Δscroll)`，其它 chip 按「移除原位置左移 / 目标位置右移」叠加 `translateX(±(宽度+间距))`，靠 `.qa-tab{transition:transform .18s}` 平滑让位；落点用 `pointer contentX` 与各 chip **拖动开始时测得的中心**比较得出 target，松手才把 target 顺序交给 `ctrl.reorder(ids)` 并 `render()` 重排 DOM。回落瞬间先给所有 chip `transition:none`、清 transform，再在下一帧恢复过渡，避免回弹动画。
@@ -129,5 +129,5 @@ node tests/controller.test.mjs      # controller 单测，末尾打印 "controll
 - 状态点：`idle` 用 `visibility:hidden` 保留 6px 占位，只有 `running/loading/approval/answer/plan/unread` 显示彩色点；**不要用 `display:none`**（标题会左右跳动）。
 - 结构：`role=dialog` + `aria-modal`，输入框 `role=combobox` + `aria-activedescendant`，列表 `role=listbox`，行 `role=option` + `aria-selected`；空态不是列表项。打开动效：遮罩 120ms、面板 200ms `cubic-bezier(.2,.8,.2,1)`（y+8px、scale .98→1）；关闭 140ms；`prefers-reduced-motion` 只保留 120ms 透明度。
 - 坑：面板的 `.qa-switcher-name` 用 `textContent`/`createTextNode` 构建，**不要用 innerHTML 拼标题**；Emoji/代理对的高亮索引按 UTF-16 与 `indexOf` 一致，若以后改 `Array.from` 要同步调整位置。
-- 测试：`fuzzyMatch` / `filterSwitcher` / `switcherRows` 在 `tests/controller.test.mjs` 第 20–21 组。
+- 测试：`fuzzyMatch` / `filterSwitcher` / `switcherRows` 在 `tests/controller.test.mjs` 第 20–21 组；`markAllRead` 的「只清完成未读、不碰审批/回答/运行中」在第 2b 组。
 
