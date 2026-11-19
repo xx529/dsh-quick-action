@@ -55,7 +55,7 @@ node tests/controller.test.mjs
 desktop profile 已改为**正式 bundle 安装**（v0.2.6 起）：
 
 - 本机当前安装 `github:xx529/dsh-quick-action#v0.3.6`（`node_modules/dsh-quick-action` 0.3.6，`pnpm-lock.yaml` 指向 `ef90500`）；
-- 本次 `v0.5.0` 的标签位置/视觉与「完成未读」本地已读按钮改动在本地提交后，需要 push 并打 `v0.5.0` tag，再执行 `plugin_manager install_bundle github:xx529/dsh-quick-action#v0.5.0`，重启 DSH 后生效；
+- 本次 `v0.5.1` 的标签位置/视觉与「完成未读」本地已读按钮改动在本地提交后，需要 push 并打 `v0.5.1` tag，再执行 `plugin_manager install_bundle github:xx529/dsh-quick-action#v0.5.1`，重启 DSH 后生效；
 - 包本体在 `~/.dsh/profiles/desktop/node_modules/dsh-quick-action`，行插入由包内 `cordis.patch.yml` 提供；
 - 旧的 vendor 克隆、`node_modules` 软链、profile `cordis.patch.yml` 里的手工 insert 段都已清理。
 
