@@ -56,9 +56,10 @@ node tests/controller.test.mjs
 
 desktop profile 已改为**正式 bundle 安装**（v0.2.6 起）：
 
-- 本机当前安装 `github:xx529/dsh-quick-action#v0.5.7`（profile 的 `node_modules/dsh-quick-action` 是真实目录，版本 0.5.7）；
+- 本机当前安装 `github:xx529/dsh-quick-action#v0.5.8`（profile 的 `node_modules/dsh-quick-action` 是真实目录，版本 0.5.8）；
 - `⇧Tab` 权限循环已用 GitHub tag 重新安装并刷新页面实测通过（工作区内修改 → 完全权限 → 仅可查看 → 工作区内修改，测试后已恢复原模式）；
-- v0.5.7 关闭标签持久化修复已安装：关闭墓碑写入独立键、跨实例合并、关闭立即落盘；页面重载后活动标签已自动滚入视野（实测截图见本次会话），并用真实 47 个历史标签模拟验证旧快照不会复活已关闭标签；
+- v0.5.7 关闭标签持久化修复已安装：关闭墓碑写入独立键、跨实例合并、关闭立即落盘；并用真实 47 个历史标签模拟验证旧快照不会复活已关闭标签；
+- v0.5.8 补齐活动标签跟随：启动/resize/布局就绪后按 `.qa-tab[data-active=true]` 的位置精确调整 `.qa-list` 的 scrollLeft；实机关闭 1 个标签验证主键 47→46、独立墓碑键同步写入。
 - 包本体在 `~/.dsh/profiles/desktop/node_modules/dsh-quick-action`，行插入由包内 `cordis.patch.yml` 提供；
 - 旧的 vendor 克隆、`node_modules` 软链、profile `cordis.patch.yml` 里的手工 insert 段都已清理。
 

@@ -584,3 +584,14 @@ console.log('close persistence tests: ok')
   assert.ok(saved.closed.gone > 0, '被剔除的归档 id 写入墓碑')
 }
 console.log('archive tombstone tests: ok')
+
+// 27. 活动标签滚动增量：左右越界/已可见/留边距
+{
+  const box = { left: 100, right: 400 }
+  assert.equal(mod.scrollAdjust({ left: 50, right: 150 }, box, 0), -50, '左侧越界向左滚')
+  assert.equal(mod.scrollAdjust({ left: 350, right: 450 }, box, 0), 50, '右侧越界向右滚')
+  assert.equal(mod.scrollAdjust({ left: 200, right: 300 }, box, 0), 0, '已可见不滚')
+  assert.equal(mod.scrollAdjust({ left: 104, right: 200 }, box, 8), -4, '保留 8px 边距')
+  assert.equal(mod.scrollAdjust(null, box, 8), 0, '缺少 rect 时不动')
+}
+console.log('reveal scroll tests: ok')
