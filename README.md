@@ -56,8 +56,8 @@ node tests/controller.test.mjs
 
 desktop profile 已改为**正式 bundle 安装**（v0.2.6 起）：
 
-- 本机当前安装 `0.5.6`，来源是工作区目录 `/Users/lzx/Documents/GitHub/dsh-quick-action`（profile 的 `node_modules/dsh-quick-action` 是指向该目录的软链，便于边改边刷新）；
-- 本次 `⇧Tab` 权限循环已用本地目录安装并刷新页面实测通过；要改成可长期使用的正式安装，push 并打 `v0.5.6` tag 后执行 `plugin_manager install_bundle github:xx529/dsh-quick-action#v0.5.6`，重启 DSH 生效；
+- 本机当前安装 `github:xx529/dsh-quick-action#v0.5.6`（profile 的 `node_modules/dsh-quick-action` 是真实目录，版本 0.5.6）；
+- `⇧Tab` 权限循环已用 GitHub tag 重新安装并刷新页面实测通过（工作区内修改 → 完全权限 → 仅可查看 → 工作区内修改，测试后已恢复原模式）；
 - 包本体在 `~/.dsh/profiles/desktop/node_modules/dsh-quick-action`，行插入由包内 `cordis.patch.yml` 提供；
 - 旧的 vendor 克隆、`node_modules` 软链、profile `cordis.patch.yml` 里的手工 insert 段都已清理。
 
