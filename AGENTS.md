@@ -86,7 +86,8 @@ node tests/controller.test.mjs      # controller 单测，末尾打印 "controll
 - vanilla DOM + CSS 字符串（`var CSS = \`...\``），**无运行时依赖**；逻辑集中在 `createController`，
   DOM 只在 `install` 里，保证可单测。
 - 文案一律走 `WORDS.zh/en`，语言由 `document.documentElement.lang` 判断，别硬编码字符串。
-- 持久化：`localStorage['dsh-quick-action.tabs.v1']`，格式 `{version:1, enabled, ids, active, read}`；`read` 是本地「完成未读已读」覆盖列表，只影响本插件 `status()`（`unread -> idle`），不会清宿主 `completionUnread`；运行中/审批/回答/计划待审优先，仍显示原状态。`markAllRead()` 只遍历 `state.ids` 中当前 `unread` 的标签；`pruneRead()` 在 `phase==='ready'` 时剔除已运行/待处理/已打开/已离场的 id，让新一轮异常重新显示未读。
+- 持久化：`localStorage['dsh-quick-action.tabs.v1']`，格式 `{version:1, enabled, ids, active, read, at, closed}`；`read` 是本地「完成未读已读」覆盖列表，只影响本插件 `status()`（`unread -> idle`），不会清宿主 `completionUnread`；运行中/审批/回答/计划待审优先，仍显示原状态。`markAllRead()` 只遍历 `state.ids` 中当前 `unread` 的标签；`pruneRead()` 在 `phase==='ready'` 时剔除已运行/待处理/已打开/已离场的 id，让新一轮异常重新显示未读。
+  另外把墓碑单独存到 `localStorage['dsh-quick-action.closed.v1']`（只有 id → 关闭时间）：旧版本插件只会整表覆盖主键、不会碰这个键，所以主键被旧实例写回后，重启时仍能拦住已关闭标签。`at`（id → 加入时间）与 `closed`（id → 关闭时间）是跨实例的 LWW 墓碑：`close()` 立即 `flush()` 写盘，并把关闭时间写成严格大于该 id 加入时间的值；`saveNow()` 每次写盘前先读回 localStorage 并 `mergeStates()`，旧窗口/旧快照整表写回时会带上本实例更新的墓碑，已关闭标签不会被复活；`storage` 事件也走 `mergeStorage()`，且对方把已关闭 id 写回来时会立即写回合并结果。`sync()` 剔除 blank/归档/离场 id 时也写墓碑。`parse()` 对旧格式（无 `at`/`closed`）保持兼容；`ids` 上限 50、墓碑上限 500。**不要把整表覆盖改回来**——这正是「重启后关闭的 session 又变成标签」的根因（2026-11-20 修复）。
   `ids` 去重、上限 50，`validId` 拒绝空/超长/控制字符。设备切换/调试用 `window.__dshQuickAction`
   （`dispose` / `snapshot`）。
 - tab 拖动排序（v0.2.11 起；v0.2.12 改为跟随鼠标）：拖动中**不移动 DOM**，只写 inline `transform`：被拖 chip 跟随指针 `translateX(dx + Δscroll)`，其它 chip 按「移除原位置左移 / 目标位置右移」叠加 `translateX(±(宽度+间距))`，靠 `.qa-tab{transition:transform .18s}` 平滑让位；落点用 `pointer contentX` 与各 chip **拖动开始时测得的中心**比较得出 target，松手才把 target 顺序交给 `ctrl.reorder(ids)` 并 `render()` 重排 DOM。回落瞬间先给所有 chip `transition:none`、清 transform，再在下一帧恢复过渡，避免回弹动画。

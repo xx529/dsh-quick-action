@@ -35,9 +35,11 @@ function makeCtx(state = {}) {
 }
 
 const storage = {
-  value: null,
-  getItem() { return this.value },
-  setItem(_k, v) { this.value = v },
+  values: {},
+  get value() { return this.values['dsh-quick-action.tabs.v1'] ?? null },
+  set value(v) { this.values = { 'dsh-quick-action.tabs.v1': v } },
+  getItem(k) { return this.values[k] ?? null },
+  setItem(k, v) { this.values[k] = v },
 }
 
 // 1. parse / serialize round trip
@@ -501,3 +503,84 @@ console.log('ide toggle target tests: ok')
   assert.equal(mod.bindingMatches({ code: 'Tab', shiftKey: false, altKey: false, metaKey: false, ctrlKey: false }, local, true), false, '单按 Tab 不命中')
 }
 console.log('permission cycle tests: ok')
+
+// 24. 关闭墓碑与跨实例合并：旧快照不能复活已关闭标签
+{
+  const legacy = mod.parse(JSON.stringify({ version: 1, ids: ['a', 'b'], active: 'a', read: ['b'] }))
+  assert.deepEqual(legacy.ids, ['a', 'b'], '旧格式（无 at/closed）仍可读')
+  assert.deepEqual(legacy.at, {})
+  assert.deepEqual(legacy.closed, {})
+
+  const closed = mod.parse(JSON.stringify({ version: 1, ids: ['a', 'b'], closed: { b: 100 } }))
+  assert.deepEqual(closed.ids, ['a'], '有墓碑的 id 读取时剔除')
+
+  // stale 是关闭发生前的快照：b 的加入时间 2 < 关闭时间 3，不能复活
+  const stale = mod.parse(JSON.stringify({ version: 1, ids: ['a', 'b'], at: { a: 1, b: 2 } }))
+  const afterClose = mod.parse(JSON.stringify({ version: 1, ids: ['a'], at: { a: 1 }, closed: { b: 3 } }))
+  assert.deepEqual(mod.mergeStates(stale, afterClose).ids, ['a'])
+  assert.deepEqual(mod.mergeStates(afterClose, stale).ids, ['a'], '合并顺序无关')
+
+  // 用户重新打开：加入时间 4 > 关闭时间 3，恢复
+  const reopened = mod.parse(JSON.stringify({ version: 1, ids: ['a', 'b'], at: { a: 1, b: 4 }, closed: {} }))
+  assert.deepEqual(mod.mergeStates(afterClose, reopened).ids, ['a', 'b'])
+
+  // 两个实例各开一个标签：并集；read 也合并
+  const left = mod.parse(JSON.stringify({ version: 1, ids: ['x'], at: { x: 5 }, read: ['r1'] }))
+  const right = mod.parse(JSON.stringify({ version: 1, ids: ['y'], at: { y: 6 }, read: ['r2'] }))
+  assert.deepEqual(mod.mergeStates(left, right).ids, ['x', 'y'])
+  assert.deepEqual(mod.mergeStates(left, right).read, ['r1', 'r2'])
+
+  // 墓碑比加入时间更旧时，id 应保留
+  const recovered = mod.parse(JSON.stringify({ version: 1, ids: ['z'], at: { z: 10 }, closed: { z: 9 } }))
+  assert.deepEqual(recovered.ids, ['z'])
+}
+console.log('storage merge tests: ok')
+
+// 25. close 立即落盘 + 墓碑；旧实例保存/收到 storage 事件都不会写回已关闭标签
+{
+  const raw = JSON.stringify({ version: 1, enabled: true, ids: ['s1', 's2'], active: 's1', read: [] })
+  storage.value = raw
+  const list = { phase: 'ready', ids: ['s1', 's2'], byId: { s1: { sessionId: 's1' }, s2: { sessionId: 's2' } } }
+  const a = mod.createController(makeCtx({ list }).ctx, { storage })
+  const b = mod.createController(makeCtx({ list }).ctx, { storage })
+  assert.equal(a.close('s2'), true)
+  const afterClose = JSON.parse(storage.value)
+  assert.deepEqual(afterClose.ids, ['s1'], 'close 立即落盘（不等 60ms 防抖）')
+  assert.ok(afterClose.closed.s2 > 0, 'close 写入关闭墓碑')
+  assert.deepEqual(a.snapshot().ids, ['s1'])
+
+  b.flush()
+  assert.deepEqual(JSON.parse(storage.value).ids, ['s1'], '旧实例保存时会合并墓碑，不写回已关闭标签')
+  assert.deepEqual(b.snapshot().ids, ['s1'], '合并结果同步到旧实例内存')
+
+  const c = mod.createController(makeCtx({ list }).ctx, { storage })
+  assert.deepEqual(c.snapshot().ids, ['s1'], '重启后加载也不会恢复已关闭标签')
+  assert.ok(JSON.parse(storage.getItem('dsh-quick-action.closed.v1')).s2 > 0, '关闭墓碑另存独立键')
+  storage.setItem('dsh-quick-action.tabs.v1', JSON.stringify({ version: 1, ids: ['s1', 's2'], active: 's1' }))
+  c.mergeStorage(storage.getItem('dsh-quick-action.tabs.v1'))
+  assert.deepEqual(c.snapshot().ids, ['s1'], '老版本整表写回触发的 storage 事件也不会复活')
+  // 老版本只会覆盖主键、不会碰独立墓碑键：即使重启前主键被写回旧表，也能拦住
+  storage.setItem('dsh-quick-action.tabs.v1', JSON.stringify({ version: 1, ids: ['s1', 's2'], active: 's1' }))
+  const d = mod.createController(makeCtx({ list }).ctx, { storage })
+  assert.deepEqual(d.snapshot().ids, ['s1'], '主键被旧版本覆盖后，独立墓碑键仍能拦住已关闭标签')
+
+  assert.equal(a.open('s2'), true)
+  a.flush()
+  const reopened = JSON.parse(storage.value)
+  assert.ok(reopened.ids.includes('s2'), '用户重新打开后可以恢复标签')
+  assert.ok(!reopened.closed.s2 || reopened.closed.s2 < reopened.at.s2, '重新打开的时间严格晚于墓碑')
+}
+console.log('close persistence tests: ok')
+
+// 26. 归档/离场标签被 ready 快照剔除时同样写墓碑，防止旧快照带回
+{
+  storage.value = JSON.stringify({ version: 1, ids: ['live', 'gone'], active: 'live' })
+  const list = { phase: 'ready', ids: ['live'], byId: { live: { sessionId: 'live' } } }
+  const workspaces = { items: [], archivedSessionIds: ['gone'] }
+  const ctrl = mod.createController(makeCtx({ list, workspaces }).ctx, { storage })
+  ctrl.flush()
+  const saved = JSON.parse(storage.value)
+  assert.deepEqual(saved.ids, ['live'])
+  assert.ok(saved.closed.gone > 0, '被剔除的归档 id 写入墓碑')
+}
+console.log('archive tombstone tests: ok')
