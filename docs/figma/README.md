@@ -59,4 +59,5 @@
 4. 键盘：↑↓ 移动选中并滚动到可视区，↵ 打开，esc 关闭；点击行等价于 ↵。
 5. 行状态点：空闲会话不显示（保留占位，标题对齐）；进行中 / 待审批 / 待回复 / 待评审 / 未读显示彩色点。
 6. 打开后：面板立即关闭、切换到目标会话并加入标签条；不弹 toast。
-6. 可访问性：`role=dialog` + `aria-modal`，输入框 `role=combobox`，列表 `role=listbox`，行 `role=option` + `aria-selected`，关闭后焦点回到打开前元素。
+6. 滚动：鼠标滚动位置在面板后台刷新时保持不变；只有 ↑↓ / 搜索会定位选中项。
+7. 可访问性：`role=dialog` + `aria-modal`，输入框 `role=combobox`，列表 `role=listbox`，行 `role=option` + `aria-selected`，关闭后焦点回到打开前元素。

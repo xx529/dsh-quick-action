@@ -127,6 +127,7 @@ node tests/controller.test.mjs      # controller 单测，末尾打印 "controll
 - DOM：`install` 内懒创建 `.qa-switcher`，`position:fixed` 挂 `document.body`（不在 React 树内，无需 MutationObserver 重挂）；**不能用 `.qa-host` 作用域的 `--qa-*` 变量**，面板样式直接使用 `--dsw-alias-*` token + `color-mix`；`html[data-qa-switcher]` 只负责打开时锁滚动。
 - 交互：打开时记录 `document.activeElement` 并在关闭（esc / 遮罩 / esc 键帽）后恢复；点行/↵ 时 `closeSwitcher(false)` 不恢复焦点，直接 `ctrl.open(id)` 并 `refresh()`。输入框 keydown 自己处理 ↑↓/↵/esc/Tab，并判 `isComposing || keyCode===229`；`Tab` 阻止焦点离开面板。
 - 状态点：`idle` 用 `visibility:hidden` 保留 6px 占位，只有 `running/loading/approval/answer/plan/unread` 显示彩色点；**不要用 `display:none`**（标题会左右跳动）。
+- 滚动：`renderSwitcher` 用数据签名（query + 三组的 id/title/workspace/status/current）判断是否需要重建；签名相同直接返回，不重建、不滚动。重建前保存 `switcherBody.scrollTop` 并在重建后恢复。`applySwitcherSelection(scroll)` 默认不滚动，只有 ↑↓（`moveSwitcher`）和搜索输入（`renderSwitcher(value, true)`）才把选中项滚入视口。**不要恢复以前「每次 render 都滚动到选中行」的行为**，否则鼠标滚动会被后台刷新拉回。
 - 结构：`role=dialog` + `aria-modal`，输入框 `role=combobox` + `aria-activedescendant`，列表 `role=listbox`，行 `role=option` + `aria-selected`；空态不是列表项。打开动效：遮罩 120ms、面板 200ms `cubic-bezier(.2,.8,.2,1)`（y+8px、scale .98→1）；关闭 140ms；`prefers-reduced-motion` 只保留 120ms 透明度。
 - 坑：面板的 `.qa-switcher-name` 用 `textContent`/`createTextNode` 构建，**不要用 innerHTML 拼标题**；Emoji/代理对的高亮索引按 UTF-16 与 `indexOf` 一致，若以后改 `Array.from` 要同步调整位置。
 - 测试：`fuzzyMatch` / `filterSwitcher` / `switcherRows` 在 `tests/controller.test.mjs` 第 20–21 组；`markAllRead` 的「只清完成未读、不碰审批/回答/运行中」在第 2b 组。
