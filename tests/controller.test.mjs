@@ -424,6 +424,7 @@ console.log('fuzzy match tests: ok')
   }
   const { ctx } = makeCtx({
     list: { phase: 'ready', ids: Object.keys(rows), byId: rows },
+    status: new Map([['a', { running: true }], ['b', { pendingInteraction: { kind: 'approval' } }], ['c', { completionUnread: true }]]),
     workspaces: { items: [
       { workspaceId: 'w1', path: '/tmp/htdot-project', title: 'htdot-project', sessionIds: ['a', 'c'] },
       { workspaceId: 'w2', path: '/tmp/open-design', title: 'open-design', sessionIds: ['b'] },
@@ -432,27 +433,29 @@ console.log('fuzzy match tests: ok')
   })
   const ctrl = mod.createController(ctx, { storage, lang: () => 'zh' })
   const all = ctrl.switcherRows('')
-  assert.deepEqual(all.opened.map((r) => r.id), ['a', 'b'], '已打开按标签顺序')
-  assert.equal(all.opened[0].current, true, '当前会话标记')
+  assert.deepEqual(all.running.map((r) => r.id), ['b', 'a'], '运行中组：审批优先于执行中')
+  assert.deepEqual(all.opened.map((r) => r.id), [], '运行中的会话从已打开组去重')
+  assert.equal(all.running.find((r) => r.id === 'a').current, true, '当前会话标记')
   assert.deepEqual(all.recent.map((r) => r.id), ['c', 'd'], '最近使用按 updatedAt 倒序')
   assert.equal(all.total, 4)
   assert.ok(!all.recent.some((r) => ['e', 'f', 'g'].includes(r.id)), 'blank/subagent/归档不进最近使用')
 
   const byTitle = ctrl.switcherRows('标签')
-  assert.deepEqual(byTitle.opened.map((r) => r.id), ['a'], '标题过滤保留命中项')
+  assert.deepEqual(byTitle.running.map((r) => r.id), ['a'], '运行中组也参与标题过滤')
+  assert.deepEqual(byTitle.opened.map((r) => r.id), [], '已打开组已去重')
   assert.deepEqual(byTitle.recent.map((r) => r.id), ['c'])
-  assert.deepEqual(byTitle.opened[0].positions, [2, 3], '返回标题高亮位置')
+  assert.deepEqual(byTitle.running[0].positions, [2, 3], '返回标题高亮位置')
   assert.equal(byTitle.total, 2)
 
   const byWorkspace = ctrl.switcherRows('htdot')
-  assert.deepEqual(byWorkspace.opened.map((r) => r.id), ['a'], '工作区命中也进入已打开结果')
+  assert.deepEqual(byWorkspace.running.map((r) => r.id), ['a'], '工作区命中也进入运行中结果')
   assert.deepEqual(byWorkspace.recent.map((r) => r.id), ['c'], '工作区命中也进入最近使用结果')
-  assert.deepEqual(byWorkspace.opened[0].positions, [], '仅工作区命中时标题不高亮')
-  assert.deepEqual(byWorkspace.opened[0].wsPositions, [0, 1, 2, 3, 4], '工作区名返回高亮位置')
+  assert.deepEqual(byWorkspace.running[0].positions, [], '仅工作区命中时标题不高亮')
+  assert.deepEqual(byWorkspace.running[0].wsPositions, [0, 1, 2, 3, 4], '工作区名返回高亮位置')
   assert.equal(byWorkspace.total, 2)
 
   const byOpenWorkspace = ctrl.switcherRows('open')
-  assert.deepEqual(byOpenWorkspace.opened.map((r) => r.id), ['b'], '工作区 open-design 命中')
+  assert.deepEqual(byOpenWorkspace.running.map((r) => r.id), ['b'], '工作区 open-design 命中运行中组')
   assert.equal(byOpenWorkspace.total, 1)
 
   const none = ctrl.switcherRows('不存在的标题')
