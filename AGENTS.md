@@ -8,8 +8,9 @@
 DSH（DeepSeek Harness）的 Web 客户端插件，包名/插件 id 均为 `dsh-quick-action`。
 当前功能：**会话页顶部**的会话标签条（复刻并改进旧插件 `dsh-session-tabs`）：双行 chip
 （工作区名 9px + 标题 13px）、状态字形、⌘⇧[ / ] 与 ⌘I 快捷键、修复"新会话空标签"；
-以及 v0.3.0 新增的居中**对话快速切换器**（⌘J）：运行中 / 已打开 / 最近使用分组、标题模糊搜索、
-↑↓/↵/esc 键盘操作。定位是"快捷操作"合集，后续继续加功能；新增功能沿用同一 host/client 两半身结构。
+v0.3.0 新增的居中**对话快速切换器**（⌘J）：运行中 / 已打开 / 最近使用分组、标题模糊搜索、
+↑↓/↵/esc 键盘操作；以及 v0.5.6 新增的 **⇧Tab 权限模式循环**（仅可查看 / 工作区内修改 / 完全权限）。
+定位是"快捷操作"合集，后续继续加功能；新增功能沿用同一 host/client 两半身结构。
 
 ## 2. 目录与职责
 
@@ -18,7 +19,7 @@ DSH（DeepSeek Harness）的 Web 客户端插件，包名/插件 id 均为 `dsh-
 | `package.json` | 包声明。`exports["./client"]` 必须指向 `lib/client.js`，否则浏览器半身不会被发布；`dsh.bundle.patch` 指向 `cordis.patch.yml`。 |
 | `cordis.patch.yml` | Bundle patch：`insert` 一行 Loader 条目 `id: quick-action`，使包成为 enabled Loader 条目（这是 client-modules scanner 发布浏览器模块的前提）；同时禁用 `dsh-session-tabs`（两条标签条会重叠）。行 id 保持稳定。 |
 | `index.mjs` | Host 半身，**刻意 inert**：只有 `name`/`inject`/`apply`，`apply` 仅打日志。全部行为在浏览器半身。 |
-| `lib/client.js` | 浏览器半身，真正实现（~1900 行）：`window.__ModuleLoader__.load({id, factory})` → `WORDS` 双语、`CSS` 字符串、`parse/serialize`、`fuzzyMatch/filterSwitcher`（纯匹配）、`createController`（纯逻辑，可单测）、`install`（DOM 挂载：标签条 + ⌘J 切换器）、`apply`。 |
+| `lib/client.js` | 浏览器半身，真正实现（~2200 行）：`window.__ModuleLoader__.load({id, factory})` → `WORDS` 双语、`CSS` 字符串、`parse/serialize`、`fuzzyMatch/filterSwitcher`（纯匹配）、`createController`（纯逻辑，可单测）、`install`（DOM 挂载：标签条 + ⌘J 切换器）、`apply`。 |
 | `locale/{zh,en}.json` | 插件管理器里显示的标题/描述。 |
 | `icon.svg` | 插件图标。 |
 | `tests/controller.test.mjs` | 无依赖单测（node:assert + 假 window 与假 ctx），覆盖存储解析、状态映射、影子标签晋升、脏数据自愈、循环切换、关闭导航。 |
@@ -63,6 +64,7 @@ node tests/controller.test.mjs      # controller 单测，末尾打印 "controll
    ⌘I 聚焦输入框（光标落末尾）、⌘⇧J 跳到待处理（⌘J 已让给对话列表）（审批>计划>回答>未读 轮转，候选来自全部会话而非仅标签）、⌘W 关闭当前标签（等同点 ×）、⌘M 切换 dsh-remote 的 IDE/普通模式。**快捷键机制**：⌘I、⌘⇧J、⌘⇧[ / ]、「关闭当前会话标签」与「切换 IDE 模式」通过 `ctx.inject(['shortcuts'])` + `scope.shortcuts.register(...)` 注册（⌘I/⌘⇧J 有默认键、设置面板可见可改键；⌘I 在输入框已聚焦时 resolve 返回 `pass` 放行）；`page.close` 的默认键仍占着 ⌘W，所以 closeTab 注册时不要设默认键（`defaults: {}`），否则注册抛 `Conflicting shortcut defaults`；⌘W 的实际触发靠 window keydown 兜底（page.close 当前未绑定，键能到 DOM），用户也可在设置里给 closeTab 绑 ⌘W。标签栏内 ←/→ 也切换。桌面端未注册键才会到达 DOM，避免硬编码
    ⌘W/⌘B/⌘⌥B/⌘T 等已占用键；宿主有 `ctx.shortcuts.register`，所有命令都走它注册。
    **⌘M 例外**：`quick-action.toggleIde` 桌面默认 `⌘M`——宿主主进程在 `before-input-event` 里对已注册命令 `preventDefault()` + `setIgnoreMenuShortcuts(true)`（防 macOS 菜单「最小化」抢键）再派发 IPC，所以能收到；实现只点 dsh-remote 的稳定标记（开着点 `[data-rw-ide-exit]`，否则点 `[data-rw-ide-toggle]:not([disabled])`），**不按会话区门控**（IDE 模式下焦点常在文件树/编辑器，不在会话区）。Web 浏览器抢不到 ⌘M，默认 `⌥⌘M`。
+   **⇧Tab 权限模式循环（v0.5.6）**：`quick-action.cyclePermission` 在宿主注册时用 `defaults: {}`（**刻意不写默认键**）。原因：桌面端主进程 `before-input-event` 会拦截所有已注册默认键，Shift+Tab 一旦写进宿主默认值，斜杠菜单 / 模型选择器 / 权限菜单里的 Shift+Tab 就收不到；宿主 Web 运行时也直接拒绝 Shift+Tab（`bindingIssue` 的 `reserved`/`modifier-required`）。因此默认键由插件自己的 bubble `globalKeydown` 兜底（`LOCAL_PERMISSION_BINDING`），`fallbackBinding('permission')` 用 `permissionBindingFor(row, local)`：catalog 有绑定 → 跟随用户改键；`binding=null && modified=false` → 用插件默认 ⇧Tab；用户显式解绑 → 不响应。循环走 `Session.projections.faceOf('permissions').getSnapshot().currentValue` 读当前值、`Session.command('/permission <preset>')` 写值，选项优先取 `ctx.inject(['remote.permissionPresets'])` 的 `remote.permissionPresets.catalog()`，拿不到时退回 `read-only / workspace-write / danger-full-access`；`auto` 与 `custom` 永不进入循环。**完全权限直接生效**（等同 `/permission danger-full-access`，绕过宿主 GUI 风险确认），320ms 冷却 + `event.repeat` 拦截避免长按跳档。会话级门控（`scoped` + `sessionFocus`），焦点在侧栏/全局页/模态框不响应。
 6. **主题 token**：只用 `--dsw-alias-state-{business,success,warn,error,done,idle}-*` 与
    `--dsw-alias-{bg,border,label,interactive}-*`；**没有 `warning`、没有 `danger`**（旧插件写
    `state-warning-primary` 实际一直走 fallback）。顶栏定位用 `--dsh-frame-leading-clearance` 等框架变量。
@@ -118,6 +120,7 @@ node tests/controller.test.mjs      # controller 单测，末尾打印 "controll
 2. 刷新 GUI 实测：标签条渲染、切换/关闭/新建、⌘⇧[ ]、⌘I 聚焦、⌘J 打开切换器并搜索/↑↓/↵/esc；截图存 `docs/verify/`。
 3. 视觉改动必须真机截图验证（先 `agent-desktop skills get desktop` 再操作；它只支持 AXPress 语义点击）。
 4. 确认没有改 profile、没有删除用户数据（关闭/禁用都要可回退）。
+5. `⇧Tab` 权限循环（v0.5.6）已实测：在 composer 聚焦状态下连按依次得到「工作区内修改 → 完全权限 → 仅可查看 → 工作区内修改」，且最终恢复原模式。本机 `agent-desktop` 因 `ps: Operation not permitted` 不可用，改用 AppleScript `key code 48 using shift down` + `screencapture`；设置 > 快捷键里的卷标/改键未截图验证。
 
 ## 9. 会话快速切换器（v0.3.2）
 

@@ -563,3 +563,31 @@ with open(P,'rb') as f:
 5. **`StateDot` 的精确 CSS module 类名**：是构建 hash，随时会变，**不要写进选择器**；只依赖 `data-state`。
 6. **`data-dsh-bottom-toggle`**：0.2.2-rc.1 中不存在（旧插件残留选择器）。
 7. **`SessionPendingInteraction` 的 `.d.ts` 原文**：客户端 bundle 只保留运行时；类型串仅出现在 `conversation.composer` 的 ownerProps 引用里（`dsh-cordis-client-runner/lib/client.js:3227-3230`），完整 interface 未随包发布。字段集由实现反推（见 1.2）。
+
+## 附录 C：权限预设（v0.5.6 新增 ⇧Tab 循环时补查）
+
+证据均在 `app.asar` 内（解包方式见附录 A）：
+
+1. **当前会话的权限值**：`@deepseek-ai/dsh-client-ui-permission-presets/src/client/index.ts:73-75`
+   `selectionOf(session)` 读 `session.projections.faceOf('permissions').getSnapshot()`，返回
+   `{ currentValue }`；`currentValue` 是预设机器值（`read-only` / `workspace-write` /
+   `danger-full-access` / `auto` / 派生 `custom`）。
+2. **切换当前会话**：同文件 `:136` `live.command('/permission ' + preset)`；`SessionFace.command`
+   定义在 `@deepseek-ai/dsh-api-session-controller/lib/types/client/sessions/session.js:312-319`，
+   内部走 `remote.commands.execute(sessionId, line, [])`。带参 `/permission <preset>` 直接执行，
+   **不经过** GUI 的风险确认（确认只在可见选择器里，见该包 README.zh「显式键入 `/permission auto`
+   已经构成明确同意」）。
+3. **可用预设目录**：`@deepseek-ai/dsh-client-ui-permission-presets/src/client/catalog.ts`
+   `PermissionCatalogDirectory` 调 `ctx.remote.permissionPresets.catalog()`，返回
+   `{ options: [{ value, name, description }] }`；目录变化事件 `permission-presets/catalog-changed`，
+   连接代际变化也会失效。客户端按目录顺序渲染，`auto` 仅在 Auto integration 存活时出现。
+4. **默认三档**：客户端 `presentation.ts` 内置映射
+   `read-only` → 仅可查看、`workspace-write` → 工作区内修改、`danger-full-access` → 完全权限；
+   `auto` 与 `custom` 是保留值（`dsh-permission-presets/src/index.ts:73`、`:209-210`），
+   `custom` 只能显示不能选中。
+5. **宿主快捷键约束**：`@deepseek-ai/dsh-client-shortcuts/src/configuration.ts:104-105`
+   对 `Tab` 的 `Shift+Tab` 返回 `modifier-required` / `reserved`；但 `runtime === 'desktop'`
+   （macOS/Windows）在 `:101` 提前放行。桌面主进程 `app.asar/lib/main.js:19591-19711`
+   对已注册的默认键在 `before-input-event` 里 `preventDefault()` 并 IPC 派发，所以把
+   `Shift+Tab` 写进宿主默认值会抢走斜杠菜单/模型选择器里的 `Shift+Tab`。插件因此**不把默认键
+   写进宿主**，由自己的 `window` bubble keydown 兜底；设置里的命令仍可改绑其它键。

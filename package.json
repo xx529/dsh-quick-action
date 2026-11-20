@@ -1,8 +1,8 @@
 {
   "name": "dsh-quick-action",
-  "version": "0.5.5",
+  "version": "0.5.6",
   "private": true,
-  "description": "Quick actions and session tabs for DeepSeek Harness: workspace + title tabs, status badges, keyboard switching, and a centered fuzzy session switcher over titles and workspaces (Cmd+J)",
+  "description": "Quick actions and session tabs for DeepSeek Harness: workspace + title tabs, status badges, keyboard switching, a centered fuzzy session switcher (Cmd+J), and a Shift+Tab permission-mode cycle",
   "type": "module",
   "main": "index.mjs",
   "icon": "./icon.svg",

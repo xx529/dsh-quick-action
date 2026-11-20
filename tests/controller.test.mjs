@@ -474,3 +474,30 @@ console.log('switcher rows tests: ok')
   assert.equal(mod.ideToggleTarget(null), null, '没有 root 时返回 null')
 }
 console.log('ide toggle target tests: ok')
+
+// 23. 权限模式循环：目录顺序、未知当前值回落到第一档、auto/custom 不参与
+{
+  const presets = ['read-only', 'workspace-write', 'danger-full-access']
+  assert.equal(mod.nextPermissionPreset(presets, 'read-only'), 'workspace-write', '只读 -> 工作区')
+  assert.equal(mod.nextPermissionPreset(presets, 'workspace-write'), 'danger-full-access', '工作区 -> 完全权限')
+  assert.equal(mod.nextPermissionPreset(presets, 'danger-full-access'), 'read-only', '完全权限 -> 只读（循环）')
+  assert.equal(mod.nextPermissionPreset(presets, 'custom'), 'read-only', 'custom 从第一档重新开始')
+  assert.equal(mod.nextPermissionPreset(presets, null), 'read-only', '没有当前值时切到第一档')
+  assert.equal(mod.nextPermissionPreset([], 'read-only'), null, '空目录不切换')
+  assert.equal(mod.nextPermissionPreset(['auto', 'custom', 'read-only', 'read-only'], null), 'read-only', '过滤 auto/custom 并去重')
+
+  const catalog = { options: [
+    { value: 'read-only' }, { value: 'workspace-write' }, { value: 'auto' }, { value: 'danger-full-access' },
+  ] }
+  assert.deepEqual(mod.permissionPresetValues(catalog), ['read-only', 'workspace-write', 'danger-full-access'], '目录值过滤 auto')
+
+  const local = { code: 'Tab', modifiers: ['shift'] }
+  assert.equal(mod.permissionBindingFor(null, local), local, '目录不可用时使用插件默认 ⇧Tab')
+  assert.equal(mod.permissionBindingFor({ binding: null, modified: false }, local), local, '用户未改键时使用插件默认 ⇧Tab')
+  assert.equal(mod.permissionBindingFor({ binding: null, modified: true }, local), null, '用户显式解绑后不再用默认键')
+  const assigned = { code: 'KeyP', modifiers: ['primary'] }
+  assert.equal(mod.permissionBindingFor({ binding: assigned, modified: true }, local), assigned, '用户改键后以宿主绑定为准')
+  assert.equal(mod.bindingMatches({ code: 'Tab', shiftKey: true, altKey: false, metaKey: false, ctrlKey: false }, local, true), true, '⇧Tab 命中')
+  assert.equal(mod.bindingMatches({ code: 'Tab', shiftKey: false, altKey: false, metaKey: false, ctrlKey: false }, local, true), false, '单按 Tab 不命中')
+}
+console.log('permission cycle tests: ok')

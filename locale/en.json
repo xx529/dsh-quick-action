@@ -1,6 +1,6 @@
 {
   "meta": {
-    "title": "Quick actions · Tabs & switcher",
-    "description": "Session tabs above the conversation plus a centered Cmd+J session switcher: running / open / recent groups, fuzzy title / workspace search, status badges, Cmd+Shift+[ / ] switching, and a fix for leftover empty tabs."
+    "title": "Quick actions · Tabs, switcher & permission",
+    "description": "Session tabs above the conversation, a centered Cmd+J session switcher, and a Shift+Tab permission-mode cycle: running / open / recent groups, fuzzy title / workspace search, status badges, Cmd+Shift+[ / ] switching, and a fix for leftover empty tabs."
   }
 }
